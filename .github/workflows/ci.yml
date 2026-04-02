@@ -19,16 +19,16 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set up Python 3.11
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: '3.11'
           cache: 'pip'
 
       - name: Cache pip packages
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: ~/.cache/pip
           key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
@@ -43,16 +43,16 @@ jobs:
       - name: Run flake8 lint check
         run: |
           echo "Running flake8 lint checks..."
-          flake8 scheduler/ --count --select=E9,F63,F7,F82 --show-source --statistics
-          flake8 scheduler/ --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+          flake8 cloud_functions/scheduler_function/ --count --select=E9,F63,F7,F82 --show-source --statistics
+          flake8 cloud_functions/scheduler_function/ --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
         continue-on-error: false
 
       - name: Run pytest for scheduler tests
         env:
           PYTHONPATH: ${{ github.workspace }}
         run: |
-          echo "Running pytest for all tests under scheduler/tests..."
-          pytest scheduler/tests/ -v --tb=short --maxfail=5
+          echo "Running pytest for all tests under cloud_functions/scheduler_function/tests..."
+          pytest cloud_functions/scheduler_function/tests/ -v --tb=short --maxfail=5
 
       - name: Display test summary
         if: success()
