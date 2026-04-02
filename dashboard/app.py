@@ -310,6 +310,100 @@ st.markdown("""
         50% { border-color: rgba(0, 255, 255, 0.8); }
     }
 
+    .hero-ownership {
+        margin-top: 0.9rem;
+        text-align: center;
+        color: #d7f7ff;
+        font-size: 0.95rem;
+        line-height: 1.55;
+        background: rgba(0, 18, 32, 0.45);
+        border: 1px solid rgba(0, 255, 170, 0.35);
+        border-radius: 10px;
+        padding: 0.7rem 0.8rem;
+    }
+
+    .hero-ownership strong {
+        color: #00ffaa;
+    }
+
+    .impact-strip {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 0.8rem;
+        margin: 0.35rem 0 1.2rem 0;
+    }
+
+    .impact-card {
+        border: 1px solid rgba(0, 255, 255, 0.25);
+        border-radius: 12px;
+        padding: 0.9rem;
+        background: linear-gradient(145deg, rgba(12, 22, 40, 0.72) 0%, rgba(7, 48, 76, 0.35) 100%);
+        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.22);
+    }
+
+    .impact-label {
+        font-size: 0.78rem;
+        color: #8fd6ff;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        font-weight: 600;
+        margin-bottom: 0.35rem;
+    }
+
+    .impact-value {
+        font-size: 1.35rem;
+        color: #ffffff;
+        font-weight: 800;
+        line-height: 1.2;
+    }
+
+    .impact-subtext {
+        margin-top: 0.2rem;
+        font-size: 0.78rem;
+        color: #8ba7c5;
+    }
+
+    .proof-strip {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 0.8rem;
+        margin: 0.2rem 0 1rem 0;
+    }
+
+    .proof-card {
+        border: 1px solid rgba(0, 255, 170, 0.28);
+        border-radius: 12px;
+        padding: 0.85rem;
+        background: linear-gradient(145deg, rgba(10, 22, 44, 0.8) 0%, rgba(5, 36, 62, 0.4) 100%);
+    }
+
+    .proof-title {
+        color: #c8fbff;
+        font-size: 0.95rem;
+        font-weight: 700;
+        margin-bottom: 0.35rem;
+    }
+
+    .proof-link {
+        display: inline-block;
+        font-size: 0.84rem;
+        color: #00ffaa;
+        text-decoration: none;
+        border-bottom: 1px solid rgba(0, 255, 170, 0.35);
+        padding-bottom: 2px;
+    }
+
+    .proof-link:hover {
+        color: #9bffdb;
+        border-bottom-color: rgba(155, 255, 219, 0.7);
+    }
+
+    .proof-meta {
+        margin-top: 0.3rem;
+        color: #8ba7c5;
+        font-size: 0.77rem;
+    }
+
     /* Metric Cards */
     .metric-card {
         background: linear-gradient(135deg, rgba(10, 14, 39, 0.8) 0%, rgba(26, 26, 46, 0.8) 100%);
@@ -869,6 +963,14 @@ st.markdown("""
 
     /* Responsive Design */
     @media (max-width: 768px) {
+        .impact-strip {
+            grid-template-columns: 1fr 1fr;
+        }
+
+        .proof-strip {
+            grid-template-columns: 1fr;
+        }
+
         .equal-card {
             min-height: auto;
             margin-bottom: 15px;
@@ -965,9 +1067,9 @@ def render_hero():
     st.markdown("""
     <div class="hero-header">
         <h1 class="hero-title">CASS</h1>
-        <p class="hero-subtitle">Carbon-Aware Cloud Intelligence Dashboard</p>
+        <p class="hero-subtitle">A carbon-aware cloud workload scheduler that cuts emissions while balancing latency and cost.</p>
         <div class="carbon-ticker">
-             Optimizing workloads for a sustainable cloud future
+             Real-time region decisions with production-safe deployment stability.
         </div>
     </div>
     """, unsafe_allow_html=True)
@@ -1025,6 +1127,83 @@ def render_metrics(stats):
             <div class="metric-delta">Last 7 days</div>
         </div>
         """, unsafe_allow_html=True)
+
+
+def render_impact_metrics_strip(stats, recent_logs):
+    """Render recruiter-facing impact metrics using live dashboard data."""
+    if not stats:
+        return
+
+    carbon_reduction = float(stats.get('savings_percent', 0) or 0)
+    decision_accuracy = float(stats.get('success_rate', 0) or 0)
+
+    avg_response_ms = None
+    for col in ["execution_time_ms", "response_time_ms", "latency_ms"]:
+        if col in recent_logs.columns:
+            numeric = pd.to_numeric(recent_logs[col], errors="coerce").dropna()
+            if not numeric.empty:
+                avg_response_ms = float(numeric.mean())
+                break
+
+    if avg_response_ms is None and "latency" in recent_logs.columns:
+        numeric = pd.to_numeric(recent_logs["latency"], errors="coerce").dropna()
+        if not numeric.empty:
+            avg_response_ms = float(numeric.mean())
+
+    uptime = decision_accuracy
+    if "status" in recent_logs.columns and not recent_logs.empty:
+        normalized_status = recent_logs["status"].astype(str).str.lower().str.strip()
+        uptime = float((normalized_status != "failed").mean() * 100)
+
+    response_value = f"{avg_response_ms:.0f} ms" if avg_response_ms is not None else "N/A"
+
+    st.markdown(f"""
+    <div class="impact-strip">
+        <div class="impact-card">
+            <div class="impact-label">Carbon Reduction</div>
+            <div class="impact-value">{carbon_reduction:.1f}%</div>
+            <div class="impact-subtext">vs baseline average</div>
+        </div>
+        <div class="impact-card">
+            <div class="impact-label">Decision Accuracy</div>
+            <div class="impact-value">{decision_accuracy:.1f}%</div>
+            <div class="impact-subtext">successful scheduler outcomes</div>
+        </div>
+        <div class="impact-card">
+            <div class="impact-label">Avg Response Time</div>
+            <div class="impact-value">{response_value}</div>
+            <div class="impact-subtext">mean execution latency</div>
+        </div>
+        <div class="impact-card">
+            <div class="impact-label">Platform Uptime</div>
+            <div class="impact-value">{uptime:.1f}%</div>
+            <div class="impact-subtext">non-failure service health</div>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+
+def render_live_demo_proof_links():
+    """Render recruiter-friendly proof links for demo and code artifacts."""
+    st.markdown("""
+    <div class="proof-strip">
+        <div class="proof-card">
+            <div class="proof-title">Live Dashboard</div>
+            <a class="proof-link" href="http://127.0.0.1:8501" target="_blank">Open running demo</a>
+            <div class="proof-meta">Local preview endpoint</div>
+        </div>
+        <div class="proof-card">
+            <div class="proof-title">Source Repository</div>
+            <a class="proof-link" href="https://github.com/BharathiSen/cass" target="_blank">View GitHub code</a>
+            <div class="proof-meta">Commit history and implementation details</div>
+        </div>
+        <div class="proof-card">
+            <div class="proof-title">Deployment Walkthrough</div>
+            <a class="proof-link" href="https://github.com/BharathiSen/cass/blob/main/docs/DEPLOYMENT.md" target="_blank">Read deployment guide</a>
+            <div class="proof-meta">Cloud setup and release checklist</div>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
 
 # ============================================================================
 # CARBON INTENSITY CHART
@@ -1359,30 +1538,69 @@ def render_energy_mix_chart(days=7):
     st.markdown('</div>', unsafe_allow_html=True)
 
 
-def render_optimal_region_card(region, score, rank, total, carbon, latency, cost):
+def render_optimal_region_card(
+    region,
+    score,
+    rank,
+    total,
+    carbon,
+    latency,
+    cost,
+    carbon_quality,
+    latency_quality,
+    cost_quality,
+    weight_carbon,
+    weight_latency,
+    weight_cost,
+    score_advantage_pct,
+    stable_hours,
+):
     """Render a focused optimal region card for the 2-column optimizer layout."""
+
+    carbon_quality = max(0.0, min(100.0, float(carbon_quality)))
+    latency_quality = max(0.0, min(100.0, float(latency_quality)))
+    cost_quality = max(0.0, min(100.0, float(cost_quality)))
+
     st.markdown(f"""
     <div style="background: rgba(21, 31, 67, 0.92);
-               border-radius: 16px; padding: 20px; margin-bottom: 14px;
+               border-radius: 16px; padding: 20px; margin-bottom: 14px; min-height: 360px;
                border: 1px solid rgba(0, 212, 255, 0.35);
-               text-align: center;">
-        <div style="font-size: 2.2rem; font-weight: 700; color: #ffffff; line-height:1.2;">{region}</div>
-        <div style="font-size: 1rem; color: rgba(255,255,255,0.95); margin-top: 6px;">
+               text-align: center; display: flex; flex-direction: column; justify-content: center;">
+        <div style="font-size: 2rem; font-weight: 700; color: #ffffff; line-height:1.1;">{region}</div>
+        <div style="font-size: 0.98rem; color: rgba(255,255,255,0.95); margin-top: 5px;">
             Final Score: <strong>{score:.3f}</strong> | Rank: <strong>#{rank}/{total}</strong>
         </div>
-        <div style="margin-top: 14px; display:flex; justify-content: space-between; gap: 10px; text-align:left;">
-            <div style="flex:1; background: rgba(255,255,255,0.04); padding:10px; border-radius:10px;">
+        <div style="margin-top: 12px; display:flex; justify-content: space-between; gap: 8px; text-align:left;">
+            <div style="flex:1; background: rgba(255,255,255,0.04); padding:9px; border-radius:10px;">
                 <div style="font-size: 0.82rem; color:#95a4c8;">Carbon</div>
-                <div style="font-size: 1.1rem; color:#ffffff; font-weight:600;">{carbon:.0f} gCO/kWh</div>
+                <div style="font-size: 1.08rem; color:#ffffff; font-weight:600;">{carbon:.0f} gCO2/kWh</div>
+                <div style="margin-top: 6px; height: 5px; background: rgba(255,255,255,0.12); border-radius: 999px; overflow: hidden;">
+                    <div style="width: {carbon_quality:.1f}%; height: 100%; background: linear-gradient(90deg, #35e7a5, #00ffaa);"></div>
+                </div>
             </div>
-            <div style="flex:1; background: rgba(255,255,255,0.04); padding:10px; border-radius:10px;">
+            <div style="flex:1; background: rgba(255,255,255,0.04); padding:9px; border-radius:10px;">
                 <div style="font-size: 0.82rem; color:#95a4c8;">Latency</div>
-                <div style="font-size: 1.1rem; color:#ffffff; font-weight:600;">{latency:.0f} ms</div>
+                <div style="font-size: 1.08rem; color:#ffffff; font-weight:600;">{latency:.0f} ms</div>
+                <div style="margin-top: 6px; height: 5px; background: rgba(255,255,255,0.12); border-radius: 999px; overflow: hidden;">
+                    <div style="width: {latency_quality:.1f}%; height: 100%; background: linear-gradient(90deg, #5dd7ff, #00d4ff);"></div>
+                </div>
             </div>
-            <div style="flex:1; background: rgba(255,255,255,0.04); padding:10px; border-radius:10px;">
+            <div style="flex:1; background: rgba(255,255,255,0.04); padding:9px; border-radius:10px;">
                 <div style="font-size: 0.82rem; color:#95a4c8;">Cost</div>
-                <div style="font-size: 1.1rem; color:#ffffff; font-weight:600;">${cost:.4f}</div>
+                <div style="font-size: 1.08rem; color:#ffffff; font-weight:600;">${cost:.4f}</div>
+                <div style="margin-top: 6px; height: 5px; background: rgba(255,255,255,0.12); border-radius: 999px; overflow: hidden;">
+                    <div style="width: {cost_quality:.1f}%; height: 100%; background: linear-gradient(90deg, #b692ff, #9f7aea);"></div>
+                </div>
             </div>
+        </div>
+        <div style="margin-top: 10px; font-size: 0.78rem; color:#9bc8f7;">
+            Weighted by: Carbon <strong>{weight_carbon:.0f}%</strong> | Latency <strong>{weight_latency:.0f}%</strong> | Cost <strong>{weight_cost:.0f}%</strong>
+        </div>
+        <div style="margin-top: 6px; font-size: 0.8rem; color:#d9fbe9;">
+            <strong style="color:#52f2a6;">&#10003;</strong> Best overall score (+{score_advantage_pct:.1f}% vs next best region)
+        </div>
+        <div style="margin-top: 4px; font-size: 0.78rem; color:#9cb4d5;">
+            Stable for <strong>{stable_hours:.1f}h</strong>
         </div>
     </div>
     """, unsafe_allow_html=True)
@@ -1421,92 +1639,44 @@ def render_deployment_lock_status(logs_df):
 
 
 def render_region_comparison_chart(df, selected_region):
-    """Large comparison chart with optional grouped bars or donut share view."""
-    chart_mode = st.radio(
-        "Comparison View",
-        ["Grouped Bars", "Donut Share"],
-        horizontal=True,
-        label_visibility="collapsed",
-        key="region_compare_mode",
-    )
-
+    """Large comparison chart using grouped bars."""
     selected_mask = df["region"] == selected_region
-
-    if chart_mode == "Grouped Bars":
-        fig = go.Figure()
-        fig.add_trace(go.Bar(
-            name="Carbon",
-            x=df["region"],
-            y=df["carbon_norm"],
-            marker_color=["#00ffaa" if flag else "rgba(0,255,170,0.35)" for flag in selected_mask],
-            customdata=df["carbon_intensity"],
-            hovertemplate="<b>%{x}</b><br>Carbon (normalized): %{y:.2f}<br>Raw: %{customdata:.0f} gCO₂/kWh<extra></extra>",
-        ))
-        fig.add_trace(go.Bar(
-            name="Latency",
-            x=df["region"],
-            y=df["latency_norm"],
-            marker_color=["#00d4ff" if flag else "rgba(0,212,255,0.35)" for flag in selected_mask],
-            customdata=df["latency"],
-            hovertemplate="<b>%{x}</b><br>Latency (normalized): %{y:.2f}<br>Raw: %{customdata:.0f} ms<extra></extra>",
-        ))
-        fig.add_trace(go.Bar(
-            name="Cost",
-            x=df["region"],
-            y=df["cost_norm"],
-            marker_color=["#9f7aea" if flag else "rgba(159,122,234,0.35)" for flag in selected_mask],
-            customdata=df["cost"],
-            hovertemplate="<b>%{x}</b><br>Cost (normalized): %{y:.2f}<br>Raw: $%{customdata:.4f}<extra></extra>",
-        ))
-        fig.update_layout(
-            barmode="group",
-            title="All Regions Comparison",
-            xaxis_title="Regions",
-            yaxis_title="Normalized Metric Value",
-            plot_bgcolor="rgba(0,0,0,0)",
-            paper_bgcolor="rgba(0,0,0,0)",
-            font=dict(color="white", family="Orbitron", size=10),
-            height=380,
-            margin=dict(l=36, r=16, t=40, b=54),
-            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
-        )
-        st.plotly_chart(fig, use_container_width=True)
-        return
-
-    # Donut chart mode: show region quality share based on inverse score (higher is better share).
-    share_df = df.copy()
-    share_df["quality"] = 1.0 / (share_df["score"] + 1e-9)
-    share_df["quality_pct"] = (share_df["quality"] / share_df["quality"].sum()) * 100
-
-    fig = go.Figure(data=[go.Pie(
-        labels=share_df["region"],
-        values=share_df["quality_pct"],
-        hole=0.55,
-        sort=False,
-        marker=dict(
-            colors=["#00ffaa" if r == selected_region else "rgba(127,0,255,0.55)" for r in share_df["region"]],
-            line=dict(color="rgba(255,255,255,0.2)", width=1),
-        ),
-        textinfo="label+percent",
-        hovertemplate="<b>%{label}</b><br>Quality share: %{value:.1f}%<br>Final score: %{customdata:.3f}<extra></extra>",
-        customdata=share_df["score"],
-    )])
+    fig = go.Figure()
+    fig.add_trace(go.Bar(
+        name="Carbon",
+        x=df["region"],
+        y=df["carbon_norm"],
+        marker_color=["#00ffaa" if flag else "rgba(0,255,170,0.35)" for flag in selected_mask],
+        customdata=df["carbon_intensity"],
+        hovertemplate="<b>%{x}</b><br>Carbon (normalized): %{y:.2f}<br>Raw: %{customdata:.0f} gCO₂/kWh<extra></extra>",
+    ))
+    fig.add_trace(go.Bar(
+        name="Latency",
+        x=df["region"],
+        y=df["latency_norm"],
+        marker_color=["#00d4ff" if flag else "rgba(0,212,255,0.35)" for flag in selected_mask],
+        customdata=df["latency"],
+        hovertemplate="<b>%{x}</b><br>Latency (normalized): %{y:.2f}<br>Raw: %{customdata:.0f} ms<extra></extra>",
+    ))
+    fig.add_trace(go.Bar(
+        name="Cost",
+        x=df["region"],
+        y=df["cost_norm"],
+        marker_color=["#9f7aea" if flag else "rgba(159,122,234,0.35)" for flag in selected_mask],
+        customdata=df["cost"],
+        hovertemplate="<b>%{x}</b><br>Cost (normalized): %{y:.2f}<br>Raw: $%{customdata:.4f}<extra></extra>",
+    ))
     fig.update_layout(
-        title="Region Quality Share (lower score = larger share)",
+        barmode="group",
+        title="All Regions Comparison",
+        xaxis_title="Regions",
+        yaxis_title="Normalized Metric Value",
         plot_bgcolor="rgba(0,0,0,0)",
         paper_bgcolor="rgba(0,0,0,0)",
         font=dict(color="white", family="Orbitron", size=10),
-        height=380,
-        margin=dict(l=16, r=16, t=40, b=14),
-        showlegend=True,
-        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5),
-        annotations=[dict(
-            text=f"Selected<br>{selected_region}",
-            x=0.5,
-            y=0.5,
-            font=dict(color="#d7f7ff", size=14),
-            showarrow=False,
-        )],
+        height=360,
+        margin=dict(l=36, r=16, t=40, b=54),
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
     )
     st.plotly_chart(fig, use_container_width=True)
 def render_multi_objective_optimizer(recent_logs=None):
@@ -1531,20 +1701,20 @@ def render_multi_objective_optimizer(recent_logs=None):
 
         result = st.session_state.get("optimization_result")
         if not result:
-            left_col, right_col = st.columns([1, 1.2], gap="large")
+            left_col, right_col = st.columns([1, 1], gap="large")
             with left_col:
                 st.markdown("#### Optimal Region (Multi-Objective)")
                 st.info("Run optimization to see results")
-                st.markdown('<div class="skeleton" style="height: 220px;"></div>', unsafe_allow_html=True)
+                st.markdown('<div class="skeleton" style="height: 360px;"></div>', unsafe_allow_html=True)
             with right_col:
                 st.markdown("#### All Regions Comparison")
                 st.info("Run optimization to see results")
-                st.markdown('<div class="skeleton" style="height: 380px;"></div>', unsafe_allow_html=True)
+                st.markdown('<div class="skeleton" style="height: 360px;"></div>', unsafe_allow_html=True)
             return
 
         df = pd.DataFrame(result.get("all_candidates", []))
         if df.empty:
-            left_col, right_col = st.columns([1, 1.2], gap="large")
+            left_col, right_col = st.columns([1, 1], gap="large")
             with left_col:
                 st.markdown("#### Optimal Region (Multi-Objective)")
                 st.info("Run optimization to see results")
@@ -1566,9 +1736,37 @@ def render_multi_objective_optimizer(recent_logs=None):
         df = df.sort_values("score")
 
         selected_region = result["region"]
-        selected_rank = int(df.reset_index(drop=True).index[df.reset_index(drop=True)["region"] == selected_region][0]) + 1
+        reset_df = df.reset_index(drop=True)
+        selected_rank = int(reset_df.index[reset_df["region"] == selected_region][0]) + 1
 
-        left_col, right_col = st.columns([1, 1.2], gap="large")
+        selected_row = reset_df[reset_df["region"] == selected_region].iloc[0]
+        carbon_quality = (1 - float(selected_row["carbon_norm"])) * 100
+        latency_quality = (1 - float(selected_row["latency_norm"])) * 100
+        cost_quality = (1 - float(selected_row["cost_norm"])) * 100
+
+        weights = result.get("weights", {})
+        weight_carbon = float(weights.get("carbon", 0.5)) * 100
+        weight_latency = float(weights.get("latency", 0.3)) * 100
+        weight_cost = float(weights.get("cost", 0.2)) * 100
+
+        score_advantage_pct = 0.0
+        if selected_rank == 1 and len(reset_df) > 1:
+            next_best_score = float(reset_df.iloc[1]["score"])
+            if next_best_score > 0:
+                score_advantage_pct = ((next_best_score - float(result["score"])) / next_best_score) * 100
+
+        stable_hours = 0.0
+        if recent_logs is not None and not recent_logs.empty:
+            latest_row = recent_logs
+            if "timestamp" in recent_logs.columns:
+                latest_row = recent_logs.sort_values("timestamp", ascending=False)
+            latest = latest_row.iloc[0]
+            try:
+                stable_hours = float(latest.get("last_switched_hours_ago", 0) or 0)
+            except (TypeError, ValueError):
+                stable_hours = 0.0
+
+        left_col, right_col = st.columns([1, 1], gap="large")
 
         with left_col:
             st.markdown("#### Optimal Region (Multi-Objective)")
@@ -1580,12 +1778,21 @@ def render_multi_objective_optimizer(recent_logs=None):
                 result['carbon_intensity'],
                 result['latency'],
                 result['cost'],
+                carbon_quality,
+                latency_quality,
+                cost_quality,
+                weight_carbon,
+                weight_latency,
+                weight_cost,
+                score_advantage_pct,
+                stable_hours,
             )
-            render_deployment_lock_status(recent_logs)
 
         with right_col:
             st.markdown("#### All Regions Comparison")
             render_region_comparison_chart(df, selected_region)
+
+        render_deployment_lock_status(recent_logs)
     except Exception as e:
         st.error(f" Error in multi-objective optimizer: {str(e)}")
 
@@ -1642,6 +1849,7 @@ def main():
 
     # Render hero section
     render_hero()
+    render_live_demo_proof_links()
 
     # Apply high contrast mode if enabled
     apply_high_contrast_css()
@@ -1768,6 +1976,9 @@ def main():
                 st.markdown('<div class="skeleton" style="height: 150px;"></div>', unsafe_allow_html=True)
     else:
         render_metrics(stats)
+
+    if stats is not None and len(recent_logs) > 0:
+        render_impact_metrics_strip(stats, recent_logs)
 
     if stats:
         st.markdown("""
