@@ -1,4 +1,4 @@
-"""
+﻿"""
 CASS-Lite v2 - Carbon-Aware Serverless Scheduler Dashboard
 ===========================================================
 Phase 9: Intelligent Visualization & Professional UX
@@ -363,28 +363,23 @@ st.markdown("""
         color: #8ba7c5;
     }
 
-    .proof-strip {
-        display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: 0.8rem;
-        margin: 0.2rem 0 1rem 0;
-    }
-
-    .proof-card {
-        border: 1px solid rgba(0, 255, 170, 0.28);
+    .repo-source-card {
+        margin-top: 0.7rem;
+        padding: 0.8rem 0.95rem;
         border-radius: 12px;
-        padding: 0.85rem;
-        background: linear-gradient(145deg, rgba(10, 22, 44, 0.8) 0%, rgba(5, 36, 62, 0.4) 100%);
+        border: 1px solid rgba(0, 255, 170, 0.28);
+        background: linear-gradient(145deg, rgba(10, 22, 44, 0.78) 0%, rgba(5, 36, 62, 0.38) 100%);
+        text-align: center;
     }
 
-    .proof-title {
+    .repo-source-title {
         color: #c8fbff;
-        font-size: 0.95rem;
+        font-size: 0.9rem;
         font-weight: 700;
-        margin-bottom: 0.35rem;
+        margin-bottom: 0.3rem;
     }
 
-    .proof-link {
+    .repo-source-link {
         display: inline-block;
         font-size: 0.84rem;
         color: #00ffaa;
@@ -393,15 +388,9 @@ st.markdown("""
         padding-bottom: 2px;
     }
 
-    .proof-link:hover {
+    .repo-source-link:hover {
         color: #9bffdb;
         border-bottom-color: rgba(155, 255, 219, 0.7);
-    }
-
-    .proof-meta {
-        margin-top: 0.3rem;
-        color: #8ba7c5;
-        font-size: 0.77rem;
     }
 
     /* Metric Cards */
@@ -954,7 +943,7 @@ st.markdown("""
     }
 
     .insight-bullets li::before {
-        content: '▶';
+        content: 'â–¶';
         position: absolute;
         left: 0;
         color: #00d4ff;
@@ -965,10 +954,6 @@ st.markdown("""
     @media (max-width: 768px) {
         .impact-strip {
             grid-template-columns: 1fr 1fr;
-        }
-
-        .proof-strip {
-            grid-template-columns: 1fr;
         }
 
         .equal-card {
@@ -1097,7 +1082,7 @@ def render_metrics(stats):
         <div class="metric-card">
             <div class="metric-label">Avg Carbon Intensity</div>
             <div class="metric-value">{stats.get('avg_carbon', 0):.1f}</div>
-            <div class="metric-delta">gCO₂/kWh</div>
+            <div class="metric-delta">gCOâ‚‚/kWh</div>
         </div>
         """, unsafe_allow_html=True)
 
@@ -1183,28 +1168,6 @@ def render_impact_metrics_strip(stats, recent_logs):
     """, unsafe_allow_html=True)
 
 
-def render_live_demo_proof_links():
-    """Render recruiter-friendly proof links for demo and code artifacts."""
-    st.markdown("""
-    <div class="proof-strip">
-        <div class="proof-card">
-            <div class="proof-title">Live Dashboard</div>
-            <a class="proof-link" href="http://127.0.0.1:8501" target="_blank">Open running demo</a>
-            <div class="proof-meta">Local preview endpoint</div>
-        </div>
-        <div class="proof-card">
-            <div class="proof-title">Source Repository</div>
-            <a class="proof-link" href="https://github.com/BharathiSen/cass" target="_blank">View GitHub code</a>
-            <div class="proof-meta">Commit history and implementation details</div>
-        </div>
-        <div class="proof-card">
-            <div class="proof-title">Deployment Walkthrough</div>
-            <a class="proof-link" href="https://github.com/BharathiSen/cass/blob/main/docs/DEPLOYMENT.md" target="_blank">Read deployment guide</a>
-            <div class="proof-meta">Cloud setup and release checklist</div>
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
-
 # ============================================================================
 # CARBON INTENSITY CHART
 # ============================================================================
@@ -1226,13 +1189,13 @@ def render_carbon_intensity_chart(data):
             marker=dict(size=8),
             hovertemplate='<b>%{fullData.name}</b><br>' +
                          'Time: %{x}<br>' +
-                         'Carbon: %{y} gCO₂/kWh<extra></extra>'
+                         'Carbon: %{y} gCOâ‚‚/kWh<extra></extra>'
         ))
 
     fig.update_layout(
         plot_bgcolor='rgba(0,0,0,0)',
         paper_bgcolor='rgba(0,0,0,0)',
-        font=dict(color='#00ffaa', family='Rajdhani'),
+        font=dict(color='#00ffaa', family='Orbitron'),
         xaxis=dict(
             showgrid=True,
             gridcolor='rgba(0, 255, 255, 0.1)',
@@ -1242,7 +1205,7 @@ def render_carbon_intensity_chart(data):
         yaxis=dict(
             showgrid=True,
             gridcolor='rgba(0, 255, 255, 0.1)',
-            title='Carbon Intensity (gCO₂/kWh)',
+            title='Carbon Intensity (gCOâ‚‚/kWh)',
             title_font=dict(color='#00ffff')
         ),
         hovermode='x unified',
@@ -1270,8 +1233,8 @@ def render_region_frequency_chart(data):
 
     # Add flags
     region_flags = {
-        'IN': '🇮🇳', 'FI': '🇫🇮', 'DE': '🇩🇪',
-        'JP': '🇯🇵', 'AU-NSW': '🇦🇺', 'BR-CS': '🇧🇷'
+        'IN': 'ðŸ‡®ðŸ‡³', 'FI': 'ðŸ‡«ðŸ‡®', 'DE': 'ðŸ‡©ðŸ‡ª',
+        'JP': 'ðŸ‡¯ðŸ‡µ', 'AU-NSW': 'ðŸ‡¦ðŸ‡º', 'BR-CS': 'ðŸ‡§ðŸ‡·'
     }
     region_counts['display'] = region_counts['region'].map(
         lambda x: f"{region_flags.get(x)} {x}"
@@ -1295,7 +1258,7 @@ def render_region_frequency_chart(data):
     fig.update_layout(
         plot_bgcolor='rgba(0,0,0,0)',
         paper_bgcolor='rgba(0,0,0,0)',
-        font=dict(color='#00ffaa', family='Rajdhani'),
+        font=dict(color='#00ffaa', family='Orbitron'),
         xaxis=dict(
             showgrid=False,
             title='Region',
@@ -1437,7 +1400,7 @@ def render_geographic_map(recent_logs):
                 hover_data={'carbon': ':.1f', 'lat': False, 'lon': False, 'size': False},
                 color_continuous_scale='RdYlGn_r',
                 size_max=50,
-                labels={'carbon': 'Carbon Intensity (gCO₂/kWh)'}
+                labels={'carbon': 'Carbon Intensity (gCOâ‚‚/kWh)'}
             )
 
             fig.update_layout(
@@ -1455,7 +1418,7 @@ def render_geographic_map(recent_logs):
                 plot_bgcolor='rgba(0,0,0,0)',
                 margin=dict(l=0, r=0, t=0, b=0),
                 height=400,
-                font=dict(color='#00ffaa', family='Rajdhani')
+                font=dict(color='#00ffaa', family='Orbitron')
             )
 
             st.plotly_chart(fig, use_container_width=True)
@@ -1502,7 +1465,7 @@ def render_energy_mix_chart(days=7):
             fig.update_layout(
                 paper_bgcolor='rgba(0,0,0,0)',
                 plot_bgcolor='rgba(0,0,0,0)',
-                font=dict(color='#ffffff', family='Rajdhani'),
+                font=dict(color='#ffffff', family='Orbitron'),
                 xaxis=dict(
                     showgrid=True,
                     gridcolor='rgba(0, 255, 255, 0.1)',
@@ -1648,7 +1611,7 @@ def render_region_comparison_chart(df, selected_region):
         y=df["carbon_norm"],
         marker_color=["#00ffaa" if flag else "rgba(0,255,170,0.35)" for flag in selected_mask],
         customdata=df["carbon_intensity"],
-        hovertemplate="<b>%{x}</b><br>Carbon (normalized): %{y:.2f}<br>Raw: %{customdata:.0f} gCO₂/kWh<extra></extra>",
+        hovertemplate="<b>%{x}</b><br>Carbon (normalized): %{y:.2f}<br>Raw: %{customdata:.0f} gCOâ‚‚/kWh<extra></extra>",
     ))
     fig.add_trace(go.Bar(
         name="Latency",
@@ -1825,6 +1788,13 @@ def render_export_section(logs_df):
                 use_container_width=True
             )
 
+    st.markdown("""
+    <div class="repo-source-card">
+        <div class="repo-source-title">Source Repository</div>
+        <a class="repo-source-link" href="https://github.com/BharathiSen/cass" target="_blank">View GitHub code</a>
+    </div>
+    """, unsafe_allow_html=True)
+
 # ============================================================================
 # FOOTER
 # ============================================================================
@@ -1832,7 +1802,7 @@ def render_export_section(logs_df):
 def render_footer():
     st.markdown("""
     <div class="footer">
-        <p>Built with <span class="footer-icon">❤️</span> by <strong>Bharathi Senthilkumar</strong></p>
+        <p>Built with <span class="footer-icon">â¤ï¸</span> by <strong>Bharathi Senthilkumar</strong></p>
         <p> Powered by Google Cloud </p>
         <p style="font-size: 0.8rem; color: #7f00ff; margin-top: 1rem;">
             Making the cloud greener, one decision at a time
@@ -1849,7 +1819,6 @@ def main():
 
     # Render hero section
     render_hero()
-    render_live_demo_proof_links()
 
     # Apply high contrast mode if enabled
     apply_high_contrast_css()
@@ -1888,9 +1857,9 @@ def main():
 
         try:
             # PHASE 9: Display Cloud Run metrics
-            st.metric("CPU Usage", "12%", "↓ 3%")
-            st.metric("Memory Usage", "256 MB", "↑ 5 MB")
-            st.metric("Request Count", "1.2K", "↑ 15%")
+            st.metric("CPU Usage", "12%", "â†“ 3%")
+            st.metric("Memory Usage", "256 MB", "â†‘ 5 MB")
+            st.metric("Request Count", "1.2K", "â†‘ 15%")
         except Exception:
             st.info("Metrics loading...")
 
@@ -1947,7 +1916,7 @@ def main():
                 region_history = generate_mock_history(days=days_filter)
 
             st.session_state.data_loading_failed = True
-            st.info("ℹDisplaying mock data. Connect to Firestore for real-time data.")
+            st.info("â„¹Displaying mock data. Connect to Firestore for real-time data.")
 
         except Exception as fallback_error:
             st.error(f"Critical error: {str(fallback_error)}")
@@ -2070,4 +2039,6 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
 
