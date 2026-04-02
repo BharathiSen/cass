@@ -70,6 +70,33 @@
   "scheduler": {
     "check_interval_minutes": 15,
     "retry_attempts": 3,
-    "retry_delay_seconds": 5
+    "retry_delay_seconds": 5,
+    "stability": {
+      "lookback_hours": 24,
+      "use_weighted_moving_average": true,
+      "switch_threshold_percent": 12,
+      "min_hold_hours": 24,
+      "weights": {
+        "carbon": 0.6,
+        "latency": 0.25,
+        "cost": 0.15
+      }
+    },
+    "region_latency_ms": {
+      "IN": 10,
+      "FI": 180,
+      "DE": 150,
+      "JP": 90,
+      "AU-NSW": 140,
+      "BR-CS": 350
+    },
+    "region_cost_usd": {
+      "IN": 0.0476,
+      "FI": 0.057,
+      "DE": 0.0475,
+      "JP": 0.056,
+      "AU-NSW": 0.0595,
+      "BR-CS": 0.045
+    }
   }
 }
