@@ -1516,7 +1516,7 @@ def render_multi_objective_optimizer(recent_logs=None):
 
     try:
         st.markdown('<div class="neon-divider"></div>', unsafe_allow_html=True)
-        st.markdown('<div class="section-title">Optimize Region Selection</div>', unsafe_allow_html=True)
+        st.markdown('<div class="section-title">Optimize Region Selection (Multi-Objective)</div>', unsafe_allow_html=True)
 
         from predictor import SimplePredictiveScheduler
         scheduler = SimplePredictiveScheduler()
@@ -1533,7 +1533,7 @@ def render_multi_objective_optimizer(recent_logs=None):
         if not result:
             left_col, right_col = st.columns([1, 1.2], gap="large")
             with left_col:
-                st.markdown("#### Optimal Region")
+                st.markdown("#### Optimal Region (Multi-Objective)")
                 st.info("Run optimization to see results")
                 st.markdown('<div class="skeleton" style="height: 220px;"></div>', unsafe_allow_html=True)
             with right_col:
@@ -1546,7 +1546,7 @@ def render_multi_objective_optimizer(recent_logs=None):
         if df.empty:
             left_col, right_col = st.columns([1, 1.2], gap="large")
             with left_col:
-                st.markdown("#### Optimal Region")
+                st.markdown("#### Optimal Region (Multi-Objective)")
                 st.info("Run optimization to see results")
             with right_col:
                 st.markdown("#### All Regions Comparison")
@@ -1571,7 +1571,7 @@ def render_multi_objective_optimizer(recent_logs=None):
         left_col, right_col = st.columns([1, 1.2], gap="large")
 
         with left_col:
-            st.markdown("#### Optimal Region")
+            st.markdown("#### Optimal Region (Multi-Objective)")
             render_optimal_region_card(
                 selected_region,
                 result['score'],
