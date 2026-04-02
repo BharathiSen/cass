@@ -7,28 +7,16 @@ CASS-Lite v2 fetches real-time carbon intensity data from 6 global regions, inte
 ---
 ##  Project Structure
 
-```
+```	ext
 cass-lite-v2/
-├── scheduler/           # Core scheduling logic
-│   ├── main.py         #  Scheduler decision engine
-│   ├── carbon_fetcher.py   #  Carbon API integration
-│   ├── job_runner.py   #  Cloud Function trigger
-│   ├── firestore_logger.py #  Database logging
-│   └── config.json     #  Configuration
-│
-├── cloud_functions/    # Serverless workers
-│   ├── worker_job/     #  Worker function
-│   └── scheduler_function/ # Scheduler function
-│
-├── dashboard/          # Streamlit analytics
-│   ├── app.py
-│   └── utils.py
-│
-├── scripts/            # Deployment scripts
-│   ├── deploy_scheduler.sh
-│   └── deploy_worker.sh
-│
-└── requirements.txt    # Dependencies
+├── cloud_functions/        # Unified Production Backend
+│   ├── scheduler_function/ # Core scheduling logic, adapters, & ML
+│   └── worker_job/         # Basic worker implementations 
+├── dashboard/              # Streamlit analytics dashboard
+├── docs/                   # Deployment and operational guides
+├── monitoring/             # System monitoring JSON policies
+├── scripts/                # Essential DevOps & PowerShell scripts
+└── requirements.txt        # Root dependencies
 ```
 
 ---
@@ -252,6 +240,35 @@ LIMIT 30;
 **Note:** This is entirely optional. The CASS-Lite dashboard provides real-time analytics without BigQuery.
 
 ---
+
+
+
+---
+
+## 🧪 Testing
+
+The repository contains unit tests for the scheduler components (cloud_functions/scheduler_function). 
+
+### Running Tests
+To run the automated tests using pytest and 
+equests-mock:
+
+`ash
+# Install test dependencies
+pip install pytest requests-mock pytest-cov
+
+# Run all tests with verbose output
+cd cloud_functions/scheduler_function
+pytest tests/ -v
+
+# Run with coverage report
+pytest tests/ --cov=. --cov-report=term
+`
+
+**Testing Coverage Includes:**
+- **CarbonFetcher:** Error handling (400, 401, 429, timeouts). Greenest region selection logic.
+- **JobRunner:** Retry mechanisms, timeout recoveries, URL logic, and HTTP invocations.
+
 
 **Built with ❤️ for a greener cloud.**
 **Making serverless computing carbon-aware, one deployment at a time.**

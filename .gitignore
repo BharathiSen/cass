@@ -1,7 +1,7 @@
-# Python
+﻿# Python
 __pycache__/
 *.py[cod]
-*$py.class
+*.class
 *.so
 .Python
 build/
@@ -40,7 +40,7 @@ htmlcov/
 *.cover
 *.log
 
-# IDEs
+# IDEs & OS
 .vscode/
 .idea/
 *.swp
@@ -48,10 +48,13 @@ htmlcov/
 *~
 .DS_Store
 
-# Environment variables
+# Environment & Secrets
 .env
 .env.local
 .env.*.local
+.streamlit/secrets.toml
+service-account-key.json
+*.json.key
 
 # Temporary files
 *.tmp
@@ -66,8 +69,11 @@ logs/
 
 # Google Cloud
 .gcloud/
-service-account-key.json
-*.json.key
+
+# Node/Frontend
+node_modules/
+dist/
+.next/
 
 # Project specific
 current_config.json

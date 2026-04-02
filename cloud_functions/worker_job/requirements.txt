@@ -1,5 +1,5 @@
 # CASS-Lite v2 - Worker Function Dependencies
-# Python 3.11+
+# Extremely lightweight for minimal cold start (Google Cloud Functions Gen2)
 
-# Functions Framework (includes Flask for Cloud Run Functions)
 functions-framework==3.5.0
+flask==3.0.0

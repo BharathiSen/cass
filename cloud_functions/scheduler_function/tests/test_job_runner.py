@@ -14,7 +14,7 @@ import requests
 import requests_mock
 import time
 from unittest.mock import patch, MagicMock
-from scheduler.job_runner import JobRunner
+from job_runner import JobRunner
 
 
 def test_job_runner_retries_then_fails():

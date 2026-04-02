@@ -1,22 +1,17 @@
-# CASS-Lite v2 Dashboard Dependencies
-# Phase 9: Enhanced with intelligent visualizations
-# Optimized for Cloud Run deployment
+# CASS-Lite v2 - Dashboard Dependencies
+# Optimized for Google Cloud Run Deployment
 
-# Core Dependencies
-requests>=2.31.0
-python-dotenv>=1.0.0
+# Dashboard Framework & Graphing
+streamlit==1.28.0
+streamlit-autorefresh==1.0.1
+pandas==2.1.3
+plotly==5.18.0
+numpy==1.26.0
 
-# Google Cloud
-google-cloud-firestore>=2.13.0
-google-auth>=2.23.0
-
-# Dashboard Framework
-streamlit>=1.28.0
-streamlit-autorefresh>=1.0.1
-pandas>=2.1.0
-plotly>=5.18.0
-numpy>=1.26.0
-
-# Utilities
-pytz>=2023.3
-python-dateutil>=2.8.2
+# Networking and Google Cloud
+requests==2.31.0
+python-dateutil==2.8.2
+pytz==2023.3
+google-cloud-firestore==2.13.0
+google-auth==2.23.0
+python-dotenv==1.0.0

@@ -1,32 +1,20 @@
-# CASS-Lite v2 Dependencies
-# Python 3.9+
+﻿# CASS-Lite v2 - Master Development Dependencies
+# Use this file exclusively for local development and testing.
 
-# Core Dependencies
-requests==2.31.0          # HTTP library for API calls
-python-dotenv==1.0.0      # Environment variable management
+# --- Production Dependencies (Included by Reference) ---
+-r cloud_functions/scheduler_function/requirements.txt
+-r cloud_functions/worker_job/requirements.txt
+-r dashboard/requirements.txt
 
-# Google Cloud
-google-cloud-firestore==2.13.0    # Firestore database
-google-cloud-functions==1.15.0    # Cloud Functions SDK
-google-auth==2.23.0               # Google authentication
-
-# Dashboard
-streamlit==1.28.0         # Web dashboard framework
-pandas==2.1.3             # Data manipulation
-plotly==5.18.0            # Interactive charts
-altair==5.1.2             # Alternative visualization library
-streamlit-autorefresh==0.0.1  # Auto-refresh for real-time updates
-
-# Predictive Analytics
+# --- Advanced Analytical Modules (Optional) ---
 prophet==1.1.5            # Time series forecasting
-numpy==1.24.3             # Numerical computing
+numpy>=1.24.3             # Numerical computing
 
-# Utilities
-pytz==2023.3              # Timezone handling
-python-dateutil==2.8.2    # Date utilities
+# --- Development & Testing Tools ---
+pytest==7.4.3             # Unit testing framework
+pytest-cov                # Test coverage generation
+requests-mock==1.11.0     # HTTP request mocking
+black==23.11.0            # Python code formatter
+flake8==6.1.0             # Python linter
+python-dotenv==1.0.0      # Local .env management
 
-# Development & Testing
-pytest==7.4.3             # Testing framework
-requests-mock==1.11.0     # HTTP request mocking for tests
-black==23.11.0            # Code formatter
-flake8==6.1.0             # Linting

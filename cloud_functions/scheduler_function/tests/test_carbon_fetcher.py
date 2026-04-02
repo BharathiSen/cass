@@ -11,7 +11,7 @@ Test Coverage:
 import pytest
 import requests
 import requests_mock
-from scheduler.carbon_fetcher import CarbonFetcher
+from carbon_fetcher import CarbonFetcher
 
 
 def test_greenest_region_selection():

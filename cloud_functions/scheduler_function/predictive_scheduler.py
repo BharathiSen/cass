@@ -21,8 +21,8 @@ except ImportError:
     PROPHET_AVAILABLE = False
     logging.warning("Prophet not available. Install with: pip install prophet")
 
-from scheduler.carbon_fetcher import CarbonFetcher
-from scheduler.firestore_logger import FirestoreLogger
+from carbon_fetcher import CarbonFetcher
+from firestore_logger import FirestoreLogger
 
 
 # Regional cost per vCPU-hour (USD) - Based on Google Cloud pricing
