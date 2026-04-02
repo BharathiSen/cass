@@ -7,16 +7,28 @@ CASS-Lite v2 fetches real-time carbon intensity data from 6 global regions, inte
 ---
 ##  Project Structure
 
-```	ext
+```
 cass-lite-v2/
-├── cloud_functions/        # Unified Production Backend
-│   ├── scheduler_function/ # Core scheduling logic, adapters, & ML
-│   └── worker_job/         # Basic worker implementations 
-├── dashboard/              # Streamlit analytics dashboard
-├── docs/                   # Deployment and operational guides
-├── monitoring/             # System monitoring JSON policies
-├── scripts/                # Essential DevOps & PowerShell scripts
-└── requirements.txt        # Root dependencies
+├── scheduler/           # Core scheduling logic
+│   ├── main.py         #  Scheduler decision engine
+│   ├── carbon_fetcher.py   #  Carbon API integration
+│   ├── job_runner.py   #  Cloud Function trigger
+│   ├── firestore_logger.py #  Database logging
+│   └── config.json     #  Configuration
+│
+├── cloud_functions/    # Serverless workers
+│   ├── worker_job/     #  Worker function
+│   └── scheduler_function/ # Scheduler function
+│
+├── dashboard/          # Streamlit analytics
+│   ├── app.py
+│   └── utils.py
+│
+├── scripts/            # Deployment scripts
+│   ├── deploy_scheduler.sh
+│   └── deploy_worker.sh
+│
+└── requirements.txt    # Dependencies
 ```
 
 ---
@@ -32,8 +44,6 @@ cass-lite-v2/
 
 **Live carbon intensity data updated every 5 minutes!**
 
----
-
 ##  Sample Output
 
 ```
@@ -44,8 +54,6 @@ cass-lite-v2/
  Compared across 6 regions (avg: 300 gCO₂/kWh)
 ```
 
----
-
 ##  How It Works
 
 1. **Fetch** - Get live carbon intensity from 6 global regions
@@ -55,11 +63,9 @@ cass-lite-v2/
 5. **Log** - Save decision to Firestore
 6. **Visualize** - Display analytics in Streamlit dashboard
 
-**Result:** Up to 86.7% carbon reduction vs deploying to average region! 🌱
+**Result:** Up to 86.7% carbon reduction vs deploying to average region!
 
----
-
-## 🚀 Deploy to Google Cloud
+##  Deploy to Google Cloud
 
 ### One-Click Deployment (Recommended)
 
@@ -115,13 +121,11 @@ gcloud run deploy cass-lite-dashboard \
   --allow-unauthenticated
 ```
 
-### 🌐 Live Services
+###  Live Services
 
 - **Dashboard:** [https://cass-lite-dashboard-ocbydgmwia-el.a.run.app](https://cass-lite-dashboard-ocbydgmwia-el.a.run.app)
 - **Scheduler API:** [https://cass-scheduler-ocbydgmwia-el.a.run.app](https://cass-scheduler-ocbydgmwia-el.a.run.app)
 - **Worker API:** [https://cass-worker-ocbydgmwia-el.a.run.app](https://cass-worker-ocbydgmwia-el.a.run.app)
-
----
 
 ##  Configuration
 
@@ -130,8 +134,6 @@ Edit `scheduler/config.json` to:
 - Configure region Cloud Function URLs
 - Adjust cache TTL settings
 - Set Firestore project details
-
----
 
 ##  Firestore Indexes
 
@@ -163,7 +165,6 @@ gcloud firestore indexes list
 
 **Note:** Index creation can take several minutes. Monitor progress in the [Firebase Console](https://console.firebase.google.com/).
 
----
 
 ##  Exporting Firestore Data to BigQuery
 
@@ -247,10 +248,10 @@ LIMIT 30;
 
 ## 🧪 Testing
 
-The repository contains unit tests for the scheduler components (cloud_functions/scheduler_function). 
+The repository contains unit tests for the scheduler components (cloud_functions/scheduler_function).
 
 ### Running Tests
-To run the automated tests using pytest and 
+To run the automated tests using pytest and
 equests-mock:
 
 `ash
