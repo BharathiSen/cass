@@ -410,6 +410,61 @@ st.markdown("""
         line-height: 1.35;
     }
 
+    .results-section {
+        margin: 0.25rem 0 1.1rem 0;
+        padding: 0.9rem;
+        border: 1px solid rgba(0, 255, 170, 0.24);
+        border-radius: 14px;
+        background: linear-gradient(145deg, rgba(8, 24, 44, 0.76) 0%, rgba(4, 34, 58, 0.32) 100%);
+    }
+
+    .results-title {
+        font-size: 0.9rem;
+        color: #d6f7ff;
+        text-transform: uppercase;
+        font-weight: 700;
+        margin-bottom: 0.7rem;
+        letter-spacing: 0.06em;
+    }
+
+    .results-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 0.7rem;
+    }
+
+    .results-card {
+        border: 1px solid rgba(138, 211, 255, 0.25);
+        border-radius: 12px;
+        padding: 0.75rem;
+        background: rgba(255, 255, 255, 0.03);
+        min-height: 98px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+    }
+
+    .results-label {
+        color: #a8c3e3;
+        font-size: 0.76rem;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+    }
+
+    .results-value {
+        color: #ffffff;
+        font-size: 1.2rem;
+        font-weight: 800;
+        line-height: 1.2;
+        margin: 0.2rem 0;
+    }
+
+    .results-note {
+        color: #95b7d8;
+        font-size: 0.72rem;
+        line-height: 1.35;
+    }
+
     .repo-source-card {
         margin-top: 0.7rem;
         padding: 0.8rem 0.95rem;
@@ -1007,6 +1062,10 @@ st.markdown("""
             grid-template-columns: 1fr;
         }
 
+        .results-grid {
+            grid-template-columns: 1fr;
+        }
+
         .equal-card {
             min-height: auto;
             margin-bottom: 15px;
@@ -1236,6 +1295,57 @@ def render_why_this_is_hard():
             <div class="hard-card">
                 <div class="hard-card-title">Multi-Objective Optimization</div>
                 <div class="hard-card-text">Carbon, latency, and cost pull in different directions, requiring weighted tradeoffs for reliable outcomes.</div>
+            </div>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+
+def render_results_section(stats, recent_logs):
+    """Render hard outcome metrics for recruiter scanability."""
+    if not stats:
+        return
+
+    carbon_reduction = float(stats.get('savings_percent', 0) or 0)
+
+    response_median_ms = None
+    for col in ["execution_time_ms", "response_time_ms", "latency_ms"]:
+        if col in recent_logs.columns:
+            numeric = pd.to_numeric(recent_logs[col], errors="coerce").dropna()
+            if not numeric.empty:
+                response_median_ms = float(numeric.median())
+                break
+
+    if response_median_ms is None and "latency" in recent_logs.columns:
+        numeric = pd.to_numeric(recent_logs["latency"], errors="coerce").dropna()
+        if not numeric.empty:
+            response_median_ms = float(numeric.median())
+
+    deployment_reliability = float(stats.get('success_rate', 0) or 0)
+    if "status" in recent_logs.columns and not recent_logs.empty:
+        normalized_status = recent_logs["status"].astype(str).str.lower().str.strip()
+        deployment_reliability = float((normalized_status == "success").mean() * 100)
+
+    median_value = f"{response_median_ms:.0f} ms" if response_median_ms is not None else "N/A"
+
+    st.markdown(f"""
+    <div class="results-section">
+        <div class="results-title">Results</div>
+        <div class="results-grid">
+            <div class="results-card">
+                <div class="results-label">Lower Carbon Intensity</div>
+                <div class="results-value">{carbon_reduction:.1f}%</div>
+                <div class="results-note">reduction versus baseline average</div>
+            </div>
+            <div class="results-card">
+                <div class="results-label">Median Response Time</div>
+                <div class="results-value">{median_value}</div>
+                <div class="results-note">median execution latency observed</div>
+            </div>
+            <div class="results-card">
+                <div class="results-label">Deployment Reliability</div>
+                <div class="results-value">{deployment_reliability:.1f}%</div>
+                <div class="results-note">successful scheduling outcomes</div>
             </div>
         </div>
     </div>
@@ -2023,6 +2133,7 @@ def main():
     if stats is not None and len(recent_logs) > 0:
         render_impact_metrics_strip(stats, recent_logs)
         render_why_this_is_hard()
+        render_results_section(stats, recent_logs)
 
     if stats:
         st.markdown("""
