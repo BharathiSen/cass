@@ -20,6 +20,7 @@ from typing import Dict, Optional, List
 from carbon_fetcher import CarbonFetcher
 from job_runner import JobRunner
 from firestore_logger import FirestoreLogger
+from policy_engine import PolicyEngine
 
 
 DEFAULT_REGION_LATENCY_MS = {
@@ -119,12 +120,14 @@ class CarbonScheduler:
         self.fetcher = CarbonFetcher(api_key=api_key, cache_ttl=cache_ttl)
         self.job_runner = JobRunner(self.config, max_retries=3, retry_delay=2, timeout=30)
         self.firestore_logger = FirestoreLogger(self.config)
+        self.policy_engine = PolicyEngine(self.config, can_deploy_fn=can_deploy)
         self.last_decision = None
 
         print(f"✓ Configuration loaded from {config_path}")
         print(f"✓ Carbon fetcher initialized ({len(self.fetcher.regions)} regions)")
         print(f"✓ Job runner initialized")
         print(f"✓ Firestore logger initialized")
+        print(f"✓ Policy engine initialized")
         print(f"✓ Cache TTL: {cache_ttl} seconds\n")
 
     def _load_config(self, config_path: str) -> dict:
@@ -152,13 +155,6 @@ class CarbonScheduler:
             print(f"⚠️  Error parsing config file: {e}")
             print("   Using default configuration...")
             return {}
-
-    @staticmethod
-    def _normalize(value: float, min_val: float, max_val: float) -> float:
-        """Normalize to [0, 1] (lower is better in this scheduler)."""
-        if max_val == min_val:
-            return 0.5
-        return (value - min_val) / (max_val - min_val)
 
     @staticmethod
     def _weighted_average(values: List[float]) -> float:
@@ -226,108 +222,21 @@ class CarbonScheduler:
         region_carbon_24h: Dict[str, float],
         latest_region_samples: Dict[str, float],
     ) -> List[Dict]:
-        """Compute composite score = weighted normalized carbon + latency + cost."""
+        """Compute composite scores using the configured policy strategy."""
         scheduler_cfg = self.config.get("scheduler", {})
-        stability_cfg = scheduler_cfg.get("stability", {})
-        weights_cfg = stability_cfg.get("weights", {})
-
-        w_carbon = float(weights_cfg.get("carbon", 0.6))
-        w_latency = float(weights_cfg.get("latency", 0.25))
-        w_cost = float(weights_cfg.get("cost", 0.15))
-        total_w = max(w_carbon + w_latency + w_cost, 1e-9)
-        w_carbon, w_latency, w_cost = w_carbon / total_w, w_latency / total_w, w_cost / total_w
-
         latency_map = scheduler_cfg.get("region_latency_ms", DEFAULT_REGION_LATENCY_MS)
         cost_map = scheduler_cfg.get("region_cost_usd", DEFAULT_REGION_COST_USD)
-
-        candidates = []
-        for zone, carbon_24h in region_carbon_24h.items():
-            candidates.append({
-                "zone": zone,
-                "carbon_24h": float(carbon_24h),
-                "carbon_latest": float(latest_region_samples.get(zone, carbon_24h)),
-                "latency_ms": float(latency_map.get(zone, 150)),
-                "cost_usd": float(cost_map.get(zone, 0.05)),
-            })
-
-        all_carbon = [c["carbon_24h"] for c in candidates]
-        all_latency = [c["latency_ms"] for c in candidates]
-        all_cost = [c["cost_usd"] for c in candidates]
-
-        for c in candidates:
-            carbon_norm = self._normalize(c["carbon_24h"], min(all_carbon), max(all_carbon))
-            latency_norm = self._normalize(c["latency_ms"], min(all_latency), max(all_latency))
-            cost_norm = self._normalize(c["cost_usd"], min(all_cost), max(all_cost))
-
-            c["score_breakdown"] = {
-                "carbon": round(w_carbon * carbon_norm, 4),
-                "latency": round(w_latency * latency_norm, 4),
-                "cost": round(w_cost * cost_norm, 4),
-            }
-            c["score"] = round(
-                c["score_breakdown"]["carbon"]
-                + c["score_breakdown"]["latency"]
-                + c["score_breakdown"]["cost"],
-                4,
-            )
-
-        return sorted(candidates, key=lambda item: item["score"])
+        return self.policy_engine.score_regions(
+            region_carbon_24h=region_carbon_24h,
+            latest_region_samples=latest_region_samples,
+            latency_map=latency_map,
+            cost_map=cost_map,
+        )
 
     def _select_stable_region(self, ranked_candidates: List[Dict]) -> Dict:
-        """Apply strict deployment lock + hysteresis to avoid region thrashing."""
-        stability_cfg = self.config.get("scheduler", {}).get("stability", {})
-        threshold_pct = float(stability_cfg.get("switch_threshold_percent", 12))
-        hold_hours = float(stability_cfg.get("min_hold_hours", 24))
-
-        best = ranked_candidates[0]
+        """Apply strategy-aware stable selection (lock + hysteresis)."""
         state = self.firestore_logger.get_scheduler_state()
-        previous_region = state.get("last_deployed_region") or state.get("selected_region")
-        previous_score = state.get("selected_score")
-        last_switch_raw = state.get("last_deployment_time") or state.get("last_switch_timestamp")
-
-        deploy_guard = can_deploy(last_switch_raw, hold_hours=hold_hours)
-        deploy_allowed = bool(deploy_guard["allowed"])
-        elapsed_hours = float(deploy_guard["hours_since_last"])
-
-        decision_region = best["zone"]
-        decision_reason = "initial_selection"
-        switched = True
-        previous_candidate = next((c for c in ranked_candidates if c["zone"] == previous_region), None)
-
-        if previous_region and previous_candidate:
-            decision_region = previous_region
-            switched = False
-            decision_reason = "hold_previous_region"
-
-            prev_score = float(previous_score) if previous_score is not None else previous_candidate["score"]
-            improvement_pct = ((prev_score - best["score"]) / max(prev_score, 1e-9)) * 100
-
-            if best["zone"] == previous_region:
-                decision_reason = "best_region_unchanged"
-            elif not deploy_allowed:
-                decision_reason = "deployment_locked_for_stability"
-            elif improvement_pct < threshold_pct:
-                decision_reason = "hysteresis_threshold_not_met"
-            else:
-                decision_region = best["zone"]
-                switched = True
-                decision_reason = "threshold_met_switch"
-
-        selected_candidate = next((c for c in ranked_candidates if c["zone"] == decision_region), best)
-        next_eligible_hours = float(deploy_guard["next_eligible_in_hours"])
-
-        return {
-            "selected": selected_candidate,
-            "best": best,
-            "ranked": ranked_candidates,
-            "switched": switched,
-            "decision_reason": decision_reason,
-            "last_switch_hours_ago": round(elapsed_hours if elapsed_hours < 1e8 else 0.0, 2),
-            "next_eligible_switch_in_hours": round(next_eligible_hours, 2),
-            "switch_threshold_percent": threshold_pct,
-            "min_hold_hours": hold_hours,
-            "deployment_lock_active": not deploy_allowed,
-        }
+        return self.policy_engine.select_stable_region(ranked_candidates, scheduler_state=state)
 
     def make_decision(self) -> Optional[Dict]:
         """
@@ -415,7 +324,10 @@ class CarbonScheduler:
             'total_regions_checked': len(ranked),
             'decision_time_ms': decision_time_ms,
             'data_timestamp': datetime.now(timezone.utc).isoformat(),
-            'decision_basis': '24h_weighted_average',
+            'decision_basis': f"24h_weighted_average:{stable_choice['strategy_mode']}",
+            'strategy_mode': stable_choice['strategy_mode'],
+            'strategy_weights': stable_choice['strategy_weights'],
+            'strategy_weights_source': stable_choice['strategy_weights_source'],
             'switch_applied': stable_choice['switched'],
             'switch_reason': stable_choice['decision_reason'],
             'deployment_lock_active': stable_choice['deployment_lock_active'],
@@ -441,6 +353,7 @@ class CarbonScheduler:
         print(f"⚡ Current Carbon: {decision['carbon_intensity']} gCO₂/kWh")
         print(f"💰 Carbon Savings: {decision['savings_gco2']} gCO₂/kWh ({decision['savings_percent']}%)")
         print(f"🧭 Decision Basis: {decision['decision_basis']}")
+        print(f"🎛️ Strategy Mode: {decision['strategy_mode']}")
         print(f"🔁 Switch Applied: {decision['switch_applied']} ({decision['switch_reason']})")
         if decision['deployment_lock_active']:
             print("🛡️ Deployment locked for stability")
@@ -732,6 +645,7 @@ def run_scheduler(request):
                     'region': decision.get('selected_region'),
                     'region_name': decision.get('region_name'),
                     'region_flag': decision.get('region_flag'),
+                    'strategy_mode': decision.get('strategy_mode'),
                     'carbon_intensity': decision.get('carbon_intensity'),
                     'savings_gco2': decision.get('savings_gco2'),
                     'savings_percent': decision.get('savings_percent'),

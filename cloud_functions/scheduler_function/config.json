@@ -71,6 +71,9 @@
     "check_interval_minutes": 15,
     "retry_attempts": 3,
     "retry_delay_seconds": 5,
+    "policy": {
+      "strategy_mode": "balanced"
+    },
     "stability": {
       "lookback_hours": 24,
       "use_weighted_moving_average": true,

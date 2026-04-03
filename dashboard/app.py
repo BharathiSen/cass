@@ -465,6 +465,53 @@ st.markdown("""
         line-height: 1.35;
     }
 
+    .decisions-section {
+        margin: 0.25rem 0 1.1rem 0;
+        padding: 0.9rem;
+        border: 1px solid rgba(126, 214, 255, 0.24);
+        border-radius: 14px;
+        background: linear-gradient(145deg, rgba(9, 22, 42, 0.76) 0%, rgba(6, 34, 58, 0.32) 100%);
+    }
+
+    .decisions-title {
+        font-size: 0.9rem;
+        color: #d6f7ff;
+        text-transform: uppercase;
+        font-weight: 700;
+        margin-bottom: 0.7rem;
+        letter-spacing: 0.06em;
+    }
+
+    .decisions-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 0.7rem;
+    }
+
+    .decision-card {
+        border: 1px solid rgba(140, 194, 255, 0.22);
+        border-radius: 12px;
+        padding: 0.75rem;
+        background: rgba(255, 255, 255, 0.03);
+        min-height: 102px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+    }
+
+    .decision-label {
+        color: #dff6ff;
+        font-size: 0.82rem;
+        font-weight: 700;
+        margin-bottom: 0.25rem;
+    }
+
+    .decision-text {
+        color: #9fbddd;
+        font-size: 0.72rem;
+        line-height: 1.35;
+    }
+
     .repo-source-card {
         margin-top: 0.7rem;
         padding: 0.8rem 0.95rem;
@@ -1066,6 +1113,10 @@ st.markdown("""
             grid-template-columns: 1fr;
         }
 
+        .decisions-grid {
+            grid-template-columns: 1fr;
+        }
+
         .equal-card {
             min-height: auto;
             margin-bottom: 15px;
@@ -1346,6 +1397,33 @@ def render_results_section(stats, recent_logs):
                 <div class="results-label">Deployment Reliability</div>
                 <div class="results-value">{deployment_reliability:.1f}%</div>
                 <div class="results-note">successful scheduling outcomes</div>
+            </div>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+
+def render_engineering_decisions():
+    """Render high-impact implementation decisions for recruiter clarity."""
+    st.markdown("""
+    <div class="decisions-section">
+        <div class="decisions-title">Engineering Decisions</div>
+        <div class="decisions-grid">
+            <div class="decision-card">
+                <div class="decision-label">24h Deployment Lock</div>
+                <div class="decision-text">Prevents region thrashing and stabilizes workloads under short-lived carbon spikes.</div>
+            </div>
+            <div class="decision-card">
+                <div class="decision-label">Weighted Scoring</div>
+                <div class="decision-text">Balances carbon, latency, and cost instead of optimizing a single metric in isolation.</div>
+            </div>
+            <div class="decision-card">
+                <div class="decision-label">Fallback Behavior</div>
+                <div class="decision-text">Gracefully switches to mock/default data when upstream sources are unavailable.</div>
+            </div>
+            <div class="decision-card">
+                <div class="decision-label">Observability</div>
+                <div class="decision-text">Persists decision metadata and switch reasons for auditing and reliability analysis.</div>
             </div>
         </div>
     </div>
@@ -2134,6 +2212,7 @@ def main():
         render_impact_metrics_strip(stats, recent_logs)
         render_why_this_is_hard()
         render_results_section(stats, recent_logs)
+        render_engineering_decisions()
 
     if stats:
         st.markdown("""
