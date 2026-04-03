@@ -1092,7 +1092,7 @@ st.markdown("""
     }
 
     .insight-bullets li::before {
-        content: 'â–¶';
+        content: '▶';
         position: absolute;
         left: 0;
         color: #00d4ff;
@@ -1243,7 +1243,7 @@ def render_metrics(stats):
         <div class="metric-card">
             <div class="metric-label">Avg Carbon Intensity</div>
             <div class="metric-value">{stats.get('avg_carbon', 0):.1f}</div>
-            <div class="metric-delta">gCOâ‚‚/kWh</div>
+            <div class="metric-delta">gCO2/kWh</div>
         </div>
         """, unsafe_allow_html=True)
 
@@ -1451,7 +1451,7 @@ def render_carbon_intensity_chart(data):
             marker=dict(size=8),
             hovertemplate='<b>%{fullData.name}</b><br>' +
                          'Time: %{x}<br>' +
-                         'Carbon: %{y} gCOâ‚‚/kWh<extra></extra>'
+                         'Carbon: %{y} gCO2/kWh<extra></extra>'
         ))
 
     fig.update_layout(
@@ -1467,7 +1467,7 @@ def render_carbon_intensity_chart(data):
         yaxis=dict(
             showgrid=True,
             gridcolor='rgba(0, 255, 255, 0.1)',
-            title='Carbon Intensity (gCOâ‚‚/kWh)',
+            title='Carbon Intensity (gCO2/kWh)',
             title_font=dict(color='#00ffff')
         ),
         hovermode='x unified',
@@ -1490,16 +1490,30 @@ def render_region_frequency_chart(data):
     st.markdown('<div class="chart-container">', unsafe_allow_html=True)
     st.markdown('<h3 class="chart-title">Greenest Region Selection Frequency</h3>', unsafe_allow_html=True)
 
-    region_counts = data['region'].value_counts().reset_index()
-    region_counts.columns = ['region', 'count']
-
-    # Add flags
-    region_flags = {
-        'IN': 'ðŸ‡®ðŸ‡³', 'FI': 'ðŸ‡«ðŸ‡®', 'DE': 'ðŸ‡©ðŸ‡ª',
-        'JP': 'ðŸ‡¯ðŸ‡µ', 'AU-NSW': 'ðŸ‡¦ðŸ‡º', 'BR-CS': 'ðŸ‡§ðŸ‡·'
+    region_name_map = {
+        'IN': 'India (IN)',
+        'FI': 'Finland (FI)',
+        'DE': 'Germany (DE)',
+        'JP': 'Japan (JP)',
+        'AU-NSW': 'Australia NSW (AU-NSW)',
+        'BR-CS': 'Brazil Central-South (BR-CS)',
     }
+
+    def _clean_region_code(value):
+        text = str(value).strip()
+        # Handle legacy/mojibake values like "<garbled-flag> FI".
+        for code in region_name_map.keys():
+            if text.endswith(code):
+                return code
+        return text
+
+    cleaned = data.copy()
+    cleaned['region'] = cleaned['region'].apply(_clean_region_code)
+
+    region_counts = cleaned['region'].value_counts().reset_index()
+    region_counts.columns = ['region', 'count']
     region_counts['display'] = region_counts['region'].map(
-        lambda x: f"{region_flags.get(x)} {x}"
+        lambda x: region_name_map.get(x, x)
     )
 
     fig = go.Figure(data=[
@@ -1524,7 +1538,9 @@ def render_region_frequency_chart(data):
         xaxis=dict(
             showgrid=False,
             title='Region',
-            title_font=dict(color='#00ffff')
+            title_font=dict(color='#00ffff'),
+            tickfont=dict(size=12),
+            tickangle=-20
         ),
         yaxis=dict(
             showgrid=True,
@@ -1662,7 +1678,7 @@ def render_geographic_map(recent_logs):
                 hover_data={'carbon': ':.1f', 'lat': False, 'lon': False, 'size': False},
                 color_continuous_scale='RdYlGn_r',
                 size_max=50,
-                labels={'carbon': 'Carbon Intensity (gCOâ‚‚/kWh)'}
+                labels={'carbon': 'Carbon Intensity (gCO2/kWh)'}
             )
 
             fig.update_layout(
@@ -1873,7 +1889,7 @@ def render_region_comparison_chart(df, selected_region):
         y=df["carbon_norm"],
         marker_color=["#00ffaa" if flag else "rgba(0,255,170,0.35)" for flag in selected_mask],
         customdata=df["carbon_intensity"],
-        hovertemplate="<b>%{x}</b><br>Carbon (normalized): %{y:.2f}<br>Raw: %{customdata:.0f} gCOâ‚‚/kWh<extra></extra>",
+        hovertemplate="<b>%{x}</b><br>Carbon (normalized): %{y:.2f}<br>Raw: %{customdata:.0f} gCO2/kWh<extra></extra>",
     ))
     fig.add_trace(go.Bar(
         name="Latency",
@@ -2119,9 +2135,9 @@ def main():
 
         try:
             # PHASE 9: Display Cloud Run metrics
-            st.metric("CPU Usage", "12%", "â†“ 3%")
-            st.metric("Memory Usage", "256 MB", "â†‘ 5 MB")
-            st.metric("Request Count", "1.2K", "â†‘ 15%")
+            st.metric("CPU Usage", "12%", "-3%")
+            st.metric("Memory Usage", "256 MB", "+5 MB")
+            st.metric("Request Count", "1.2K", "+15%")
         except Exception:
             st.info("Metrics loading...")
 
@@ -2178,7 +2194,7 @@ def main():
                 region_history = generate_mock_history(days=days_filter)
 
             st.session_state.data_loading_failed = True
-            st.info("â„¹Displaying mock data. Connect to Firestore for real-time data.")
+            st.info("Info: Displaying mock data. Connect to Firestore for real-time data.")
 
         except Exception as fallback_error:
             st.error(f"Critical error: {str(fallback_error)}")

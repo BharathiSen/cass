@@ -65,6 +65,16 @@
       "high_latency_threshold_ms": 5000,
       "cost_alert_threshold_usd": 1.0
     },
+    "slo": {
+      "window_days": 7,
+      "execution_success_rate_min": 0.95,
+      "decision_latency_p95_ms": 1500,
+      "execution_latency_p95_ms": 7000
+    },
+    "observability": {
+      "structured_logging": true,
+      "include_slo_snapshot_in_response": true
+    },
     "log_retention_days": 30
   },
   "scheduler": {

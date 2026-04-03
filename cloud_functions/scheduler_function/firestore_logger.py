@@ -130,7 +130,37 @@ class FirestoreLogger:
             print("   Operating in console-only mode")
             print("="*75 + "\n")
 
-    def log_decision(self, decision_data: Dict, execution_result: Optional[Dict] = None) -> bool:
+    @staticmethod
+    def _safe_percentile(values: List[float], percentile: float) -> Optional[float]:
+        """Return percentile value from a list without external dependencies."""
+        if not values:
+            return None
+        ordered = sorted(float(v) for v in values)
+        if len(ordered) == 1:
+            return ordered[0]
+        rank = (len(ordered) - 1) * (percentile / 100.0)
+        low = int(rank)
+        high = min(low + 1, len(ordered) - 1)
+        if low == high:
+            return ordered[low]
+        weight = rank - low
+        return ordered[low] + (ordered[high] - ordered[low]) * weight
+
+    def _get_slo_targets(self) -> Dict[str, float | int]:
+        slo_cfg = self.config.get('monitoring', {}).get('slo', {})
+        return {
+            'window_days': int(slo_cfg.get('window_days', 7)),
+            'execution_success_rate_min': float(slo_cfg.get('execution_success_rate_min', 0.95)),
+            'decision_latency_p95_ms': float(slo_cfg.get('decision_latency_p95_ms', 1500)),
+            'execution_latency_p95_ms': float(slo_cfg.get('execution_latency_p95_ms', 7000)),
+        }
+
+    def log_decision(
+        self,
+        decision_data: Dict,
+        execution_result: Optional[Dict] = None,
+        observability_context: Optional[Dict] = None,
+    ) -> bool:
         """
         Log a scheduling decision to Firestore.
 
@@ -166,11 +196,31 @@ class FirestoreLogger:
             return False
 
         try:
+            obs = observability_context or {}
+            slo_targets = self._get_slo_targets()
+
+            decision_latency_ms = decision_data.get('decision_time_ms')
+            execution_latency_ms = execution_result.get('execution_time_ms') if execution_result else None
+            execution_success = execution_result.get('success') if execution_result else None
+
+            decision_latency_ok = None
+            if decision_latency_ms is not None:
+                decision_latency_ok = float(decision_latency_ms) <= float(slo_targets['decision_latency_p95_ms'])
+
+            execution_latency_ok = None
+            if execution_latency_ms is not None:
+                execution_latency_ok = float(execution_latency_ms) <= float(slo_targets['execution_latency_p95_ms'])
+
             # Build log document
             log_doc = {
                 # Decision data
                 'timestamp': decision_data.get('timestamp'),
                 'task_id': f"task_{int(time.time())}",
+                'decision_id': decision_data.get('decision_id') or obs.get('decision_id'),
+                'correlation_id': decision_data.get('correlation_id') or obs.get('correlation_id'),
+                'scheduler_run_id': decision_data.get('scheduler_run_id') or obs.get('scheduler_run_id'),
+                'event_type': 'scheduler_decision',
+                'event_schema_version': '1.0',
                 'region': decision_data.get('selected_region'),
                 'selected_region': decision_data.get('selected_region'),
                 'region_name': decision_data.get('region_name'),
@@ -184,8 +234,12 @@ class FirestoreLogger:
                 'decision_time_ms': decision_data.get('decision_time_ms'),
                 'data_timestamp': decision_data.get('data_timestamp'),
                 'decision_basis': decision_data.get('decision_basis'),
+                'strategy_mode': decision_data.get('strategy_mode'),
+                'strategy_weights': decision_data.get('strategy_weights'),
+                'strategy_weights_source': decision_data.get('strategy_weights_source'),
                 'switch_applied': decision_data.get('switch_applied'),
                 'switch_reason': decision_data.get('switch_reason'),
+                'deployment_lock_active': decision_data.get('deployment_lock_active'),
                 'last_switched_hours_ago': decision_data.get('last_switched_hours_ago'),
                 'next_eligible_switch_in_hours': decision_data.get('next_eligible_switch_in_hours'),
                 'switch_threshold_percent': decision_data.get('switch_threshold_percent'),
@@ -196,9 +250,16 @@ class FirestoreLogger:
                 'region_samples': decision_data.get('region_samples'),
 
                 # Execution result (if provided)
-                'execution_success': execution_result.get('success') if execution_result else None,
-                'execution_time_ms': execution_result.get('execution_time_ms') if execution_result else None,
+                'execution_success': execution_success,
+                'execution_time_ms': execution_latency_ms,
                 'execution_error': execution_result.get('response', {}).get('error') if execution_result and not execution_result.get('success') else None,
+
+                # SLO per-event signals
+                'slo_target_execution_success_rate_min': slo_targets['execution_success_rate_min'],
+                'slo_target_decision_latency_p95_ms': slo_targets['decision_latency_p95_ms'],
+                'slo_target_execution_latency_p95_ms': slo_targets['execution_latency_p95_ms'],
+                'slo_signal_decision_latency_ok': decision_latency_ok,
+                'slo_signal_execution_latency_ok': execution_latency_ok,
 
                 # Metadata
                 'logged_at': datetime.now().isoformat(),
@@ -228,6 +289,85 @@ class FirestoreLogger:
             self._log_to_console(decision_data, execution_result)
             print("="*75 + "\n")
             return False
+
+    def get_slo_metrics(self, days: Optional[int] = None) -> Dict[str, Any]:
+        """Compute SLO-focused metrics and compliance for observability dashboards."""
+        targets = self._get_slo_targets()
+        window_days = int(days if days is not None else targets['window_days'])
+
+        if not self.connected or not self.client:
+            return {
+                'window_days': window_days,
+                'available': False,
+                'reason': 'firestore_not_connected',
+                'targets': targets,
+            }
+
+        try:
+            threshold = datetime.now() - timedelta(days=window_days)
+            threshold_str = threshold.isoformat()
+
+            docs = (
+                self.client.collection(self.collection_name)
+                .where('timestamp', '>=', threshold_str)
+                .stream()
+            )
+            decisions = [doc.to_dict() for doc in docs]
+
+            total = len(decisions)
+            decision_latencies = [d.get('decision_time_ms') for d in decisions if d.get('decision_time_ms') is not None]
+            execution_latencies = [d.get('execution_time_ms') for d in decisions if d.get('execution_time_ms') is not None]
+            execution_results = [d.get('execution_success') for d in decisions if d.get('execution_success') is not None]
+
+            p95_decision = self._safe_percentile(decision_latencies, 95)
+            p95_execution = self._safe_percentile(execution_latencies, 95)
+
+            success_rate = None
+            if execution_results:
+                success_rate = sum(1 for item in execution_results if item is True) / len(execution_results)
+
+            lock_rate = (sum(1 for d in decisions if d.get('deployment_lock_active')) / total) if total > 0 else 0.0
+            switch_rate = (sum(1 for d in decisions if d.get('switch_applied')) / total) if total > 0 else 0.0
+
+            strategy_counter = Counter(
+                d.get('strategy_mode', 'unknown')
+                for d in decisions
+                if d.get('strategy_mode')
+            )
+
+            compliance = {
+                'execution_success_rate_met': (success_rate >= float(targets['execution_success_rate_min'])) if success_rate is not None else None,
+                'decision_latency_p95_met': (p95_decision <= float(targets['decision_latency_p95_ms'])) if p95_decision is not None else None,
+                'execution_latency_p95_met': (p95_execution <= float(targets['execution_latency_p95_ms'])) if p95_execution is not None else None,
+            }
+            known_checks = [value for value in compliance.values() if value is not None]
+            compliance['all_met'] = all(known_checks) if known_checks else None
+
+            return {
+                'window_days': window_days,
+                'available': True,
+                'targets': targets,
+                'totals': {
+                    'decisions': total,
+                    'executions_with_status': len(execution_results),
+                },
+                'metrics': {
+                    'execution_success_rate': round(success_rate, 4) if success_rate is not None else None,
+                    'decision_latency_p95_ms': round(float(p95_decision), 2) if p95_decision is not None else None,
+                    'execution_latency_p95_ms': round(float(p95_execution), 2) if p95_execution is not None else None,
+                    'deployment_lock_rate': round(lock_rate, 4),
+                    'switch_rate': round(switch_rate, 4),
+                    'strategy_distribution': dict(strategy_counter),
+                },
+                'compliance': compliance,
+            }
+        except Exception as e:
+            return {
+                'window_days': window_days,
+                'available': False,
+                'reason': f'slo_query_error:{str(e)[:120]}',
+                'targets': targets,
+            }
 
     def get_scheduler_state(self) -> Dict[str, Any]:
         """Get persisted scheduler state used for cooldown and hysteresis decisions."""

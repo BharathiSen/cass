@@ -15,6 +15,7 @@ Date: November 2025
 
 import json
 import time
+import uuid
 from datetime import datetime, timedelta, timezone
 from typing import Dict, Optional, List
 from carbon_fetcher import CarbonFetcher
@@ -121,6 +122,7 @@ class CarbonScheduler:
         self.job_runner = JobRunner(self.config, max_retries=3, retry_delay=2, timeout=30)
         self.firestore_logger = FirestoreLogger(self.config)
         self.policy_engine = PolicyEngine(self.config, can_deploy_fn=can_deploy)
+        self.active_observability_context: Dict[str, str] = {}
         self.last_decision = None
 
         print(f"✓ Configuration loaded from {config_path}")
@@ -302,6 +304,7 @@ class CarbonScheduler:
         savings = round(avg_24h_carbon - selected["carbon_24h"], 1)
         savings_percent = round((savings / avg_24h_carbon) * 100, 1) if avg_24h_carbon > 0 else 0.0
         region_info = self.fetcher.regions.get(selected["zone"], {"name": selected["zone"], "flag": "🌍"})
+        ctx = self.active_observability_context or {}
 
         # Persist stable scheduler state for next cycle
         if stable_choice["switched"]:
@@ -313,6 +316,9 @@ class CarbonScheduler:
 
         decision = {
             'timestamp': datetime.now(timezone.utc).isoformat(),
+            'decision_id': ctx.get('decision_id', f"dec_{uuid.uuid4().hex[:12]}"),
+            'correlation_id': ctx.get('correlation_id', uuid.uuid4().hex),
+            'scheduler_run_id': ctx.get('scheduler_run_id', f"run_{uuid.uuid4().hex[:12]}"),
             'selected_region': selected['zone'],
             'region_name': region_info.get('name', selected['zone']),
             'region_flag': region_info.get('flag', '🌍'),
@@ -344,6 +350,19 @@ class CarbonScheduler:
         # Store decision
         self.last_decision = decision
 
+        self._emit_structured_log(
+            event_type='scheduler_decision_created',
+            payload={
+                'decision_id': decision['decision_id'],
+                'correlation_id': decision['correlation_id'],
+                'scheduler_run_id': decision['scheduler_run_id'],
+                'selected_region': decision['selected_region'],
+                'strategy_mode': decision['strategy_mode'],
+                'decision_time_ms': decision['decision_time_ms'],
+                'deployment_lock_active': decision['deployment_lock_active'],
+            },
+        )
+
         # Step 6: Log decision summary
         print("\n" + "="*75)
         print("✅ DECISION COMPLETE")
@@ -363,6 +382,25 @@ class CarbonScheduler:
         print("="*75 + "\n")
 
         return decision
+
+    def _new_observability_context(self) -> Dict[str, str]:
+        """Create correlation IDs for one scheduler cycle."""
+        return {
+            'scheduler_run_id': f"run_{uuid.uuid4().hex[:12]}",
+            'correlation_id': uuid.uuid4().hex,
+            'decision_id': f"dec_{uuid.uuid4().hex[:12]}",
+            'started_at': datetime.now(timezone.utc).isoformat(),
+        }
+
+    def _emit_structured_log(self, event_type: str, payload: Dict) -> None:
+        """Emit one-line structured JSON logs for downstream observability."""
+        event = {
+            'event_type': event_type,
+            'event_schema_version': '1.0',
+            'emitted_at': datetime.now(timezone.utc).isoformat(),
+        }
+        event.update(payload)
+        print(json.dumps(event, default=str))
 
     def prepare_job_instructions(self, decision: Optional[Dict] = None) -> Optional[Dict]:
         """
@@ -467,6 +505,15 @@ class CarbonScheduler:
         print("="*75)
         print(f"⏰ Cycle started at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
 
+        self.active_observability_context = self._new_observability_context()
+        self._emit_structured_log(
+            event_type='scheduler_cycle_started',
+            payload={
+                'scheduler_run_id': self.active_observability_context.get('scheduler_run_id'),
+                'correlation_id': self.active_observability_context.get('correlation_id'),
+            },
+        )
+
         try:
             # Step 1: Make decision
             decision = self.make_decision()
@@ -490,8 +537,23 @@ class CarbonScheduler:
 
             execution_result = self.job_runner.execute_job(instructions)
 
+            self._emit_structured_log(
+                event_type='scheduler_execution_completed',
+                payload={
+                    'scheduler_run_id': self.active_observability_context.get('scheduler_run_id'),
+                    'correlation_id': self.active_observability_context.get('correlation_id'),
+                    'decision_id': decision.get('decision_id'),
+                    'execution_success': execution_result.get('success'),
+                    'execution_time_ms': execution_result.get('execution_time_ms'),
+                },
+            )
+
             # Step 5: Save to Firestore
-            self.firestore_logger.log_decision(decision, execution_result)
+            self.firestore_logger.log_decision(
+                decision,
+                execution_result,
+                observability_context=self.active_observability_context,
+            )
 
             # Summary
             print("="*75)
@@ -506,14 +568,40 @@ class CarbonScheduler:
 
             if execution_result['success']:
                 print("✅ SCHEDULING CYCLE COMPLETED SUCCESSFULLY\n")
+                self._emit_structured_log(
+                    event_type='scheduler_cycle_completed',
+                    payload={
+                        'scheduler_run_id': self.active_observability_context.get('scheduler_run_id'),
+                        'correlation_id': self.active_observability_context.get('correlation_id'),
+                        'decision_id': decision.get('decision_id'),
+                        'status': 'success',
+                    },
+                )
                 return True
             else:
                 print("⚠️  SCHEDULING CYCLE COMPLETED WITH WARNINGS")
                 print("   (Decision was made, but job execution had issues)\n")
+                self._emit_structured_log(
+                    event_type='scheduler_cycle_completed',
+                    payload={
+                        'scheduler_run_id': self.active_observability_context.get('scheduler_run_id'),
+                        'correlation_id': self.active_observability_context.get('correlation_id'),
+                        'decision_id': decision.get('decision_id'),
+                        'status': 'warning',
+                    },
+                )
                 return True  # Still return True since decision was made
 
         except Exception as e:
             print(f"\n❌ Scheduling cycle failed with error: {e}\n")
+            self._emit_structured_log(
+                event_type='scheduler_cycle_failed',
+                payload={
+                    'scheduler_run_id': self.active_observability_context.get('scheduler_run_id'),
+                    'correlation_id': self.active_observability_context.get('correlation_id'),
+                    'error': str(e),
+                },
+            )
             return False
 
     def get_status(self) -> Dict:
@@ -637,11 +725,23 @@ def run_scheduler(request):
 
         if success and scheduler.last_decision:
             decision = scheduler.last_decision
+            monitoring_cfg = scheduler.config.get('monitoring', {})
+            slo_targets = monitoring_cfg.get('slo', {})
+            observability_cfg = monitoring_cfg.get('observability', {})
+            include_slo_snapshot = bool(observability_cfg.get('include_slo_snapshot_in_response', True))
+
+            slo_snapshot = None
+            if include_slo_snapshot:
+                slo_window_days = int(slo_targets.get('window_days', 7))
+                slo_snapshot = scheduler.firestore_logger.get_slo_metrics(days=slo_window_days)
 
             response_data = {
                 'success': True,
                 'status': 'completed',
                 'decision': {
+                    'decision_id': decision.get('decision_id'),
+                    'correlation_id': decision.get('correlation_id'),
+                    'scheduler_run_id': decision.get('scheduler_run_id'),
                     'region': decision.get('selected_region'),
                     'region_name': decision.get('region_name'),
                     'region_flag': decision.get('region_flag'),
@@ -655,6 +755,7 @@ def run_scheduler(request):
                     'deployment_lock_active': decision.get('deployment_lock_active'),
                     'next_eligible_switch_in_hours': decision.get('next_eligible_switch_in_hours'),
                 },
+                'slo_metrics': slo_snapshot,
                 'message': f"✅ Scheduled job in {decision.get('region_name')} ({decision.get('carbon_intensity')} gCO₂/kWh)",
                 'cloud_function': 'run_scheduler',
                 'triggered_at': datetime.now().isoformat()
