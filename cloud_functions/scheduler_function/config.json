@@ -74,6 +74,12 @@
     "policy": {
       "strategy_mode": "balanced"
     },
+    "backtesting": {
+      "default_strategies": ["balanced", "carbon_first", "cost_first", "stability_first"],
+      "default_report_dir": "reports/backtest",
+      "default_limit": 500,
+      "simulate_stability": true
+    },
     "stability": {
       "lookback_hours": 24,
       "use_weighted_moving_average": true,
