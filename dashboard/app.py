@@ -19,6 +19,7 @@ import json
 from utils import (
     fetch_recent_decisions,
     get_summary_stats,
+    get_slo_metrics,
     fetch_current_carbon_data,
     get_region_history,
     get_energy_mix_data,
@@ -1329,6 +1330,77 @@ def render_impact_metrics_strip(stats, recent_logs):
     """, unsafe_allow_html=True)
 
 
+def render_slo_cards(slo_snapshot):
+    """Render SLO visibility cards for reliability and latency targets."""
+    if not slo_snapshot or not slo_snapshot.get('available'):
+        st.markdown("""
+        <div style="background: rgba(255, 193, 7, 0.15); border: 1px solid rgba(255, 193, 7, 0.45);
+                    border-radius: 12px; padding: 10px 14px; margin: 8px 0 14px 0; color: #ffd166;">
+            SLO metrics unavailable for current data source.
+        </div>
+        """, unsafe_allow_html=True)
+        return
+
+    metrics = slo_snapshot.get('metrics', {})
+    targets = slo_snapshot.get('targets', {})
+    compliance = slo_snapshot.get('compliance', {})
+    window_days = int(slo_snapshot.get('window_days', 7))
+
+    success_rate = metrics.get('execution_success_rate')
+    decision_p95 = metrics.get('decision_latency_p95_ms')
+    execution_p95 = metrics.get('execution_latency_p95_ms')
+
+    success_rate_text = f"{(success_rate * 100):.1f}%" if success_rate is not None else "N/A"
+    decision_p95_text = f"{decision_p95:.0f} ms" if decision_p95 is not None else "N/A"
+    execution_p95_text = f"{execution_p95:.0f} ms" if execution_p95 is not None else "N/A"
+
+    all_met = compliance.get('all_met')
+    if all_met is True:
+        status_text = "PASS"
+    elif all_met is False:
+        status_text = "FAIL"
+    else:
+        status_text = "N/A"
+
+    col1, col2, col3, col4 = st.columns(4)
+
+    with col1:
+        st.markdown(f"""
+        <div class="metric-card">
+            <div class="metric-label">SLO Exec Success</div>
+            <div class="metric-value">{success_rate_text}</div>
+            <div class="metric-delta">target {float(targets.get('execution_success_rate_min', 0.95)) * 100:.0f}%</div>
+        </div>
+        """, unsafe_allow_html=True)
+
+    with col2:
+        st.markdown(f"""
+        <div class="metric-card">
+            <div class="metric-label">Decision P95</div>
+            <div class="metric-value">{decision_p95_text}</div>
+            <div class="metric-delta">target {float(targets.get('decision_latency_p95_ms', 1500.0)):.0f} ms</div>
+        </div>
+        """, unsafe_allow_html=True)
+
+    with col3:
+        st.markdown(f"""
+        <div class="metric-card">
+            <div class="metric-label">Execution P95</div>
+            <div class="metric-value">{execution_p95_text}</div>
+            <div class="metric-delta">target {float(targets.get('execution_latency_p95_ms', 7000.0)):.0f} ms</div>
+        </div>
+        """, unsafe_allow_html=True)
+
+    with col4:
+        st.markdown(f"""
+        <div class="metric-card">
+            <div class="metric-label">SLO Compliance</div>
+            <div class="metric-value">{status_text}</div>
+            <div class="metric-delta">window {window_days} days</div>
+        </div>
+        """, unsafe_allow_html=True)
+
+
 def render_why_this_is_hard():
     """Render concise explanation of core scheduling complexity."""
     st.markdown("""
@@ -2153,6 +2225,7 @@ def main():
 
     # Fetch data with loading indicators and error handling
     stats = None
+    slo_snapshot = None
     recent_logs = pd.DataFrame()
     region_history = pd.DataFrame()
 
@@ -2169,6 +2242,10 @@ def main():
             # Fetch recent logs
             progress_bar.progress(50)
             recent_logs = fetch_recent_decisions(limit=100)
+
+            # Fetch SLO snapshot
+            progress_bar.progress(65)
+            slo_snapshot = get_slo_metrics(days=days_filter)
 
             # Fetch region history
             progress_bar.progress(75)
@@ -2191,6 +2268,7 @@ def main():
             with st.spinner("Loading mock data..."):
                 stats = get_summary_stats(days=days_filter)
                 recent_logs = generate_mock_decisions(100)
+                slo_snapshot = get_slo_metrics(days=days_filter)
                 region_history = generate_mock_history(days=days_filter)
 
             st.session_state.data_loading_failed = True
@@ -2223,6 +2301,9 @@ def main():
                 st.markdown('<div class="skeleton" style="height: 150px;"></div>', unsafe_allow_html=True)
     else:
         render_metrics(stats)
+
+    if slo_snapshot:
+        render_slo_cards(slo_snapshot)
 
     if stats is not None and len(recent_logs) > 0:
         render_impact_metrics_strip(stats, recent_logs)

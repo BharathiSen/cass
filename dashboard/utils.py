@@ -165,6 +165,111 @@ def get_summary_stats(days=7):
         'next_eligible_switch_in_hours': round(next_eligible_switch_in_hours, 2)
     }
 
+
+def _safe_percentile(values, percentile):
+    """Return percentile from numeric values without extra dependencies."""
+    if not values:
+        return None
+    ordered = sorted(float(v) for v in values)
+    if len(ordered) == 1:
+        return ordered[0]
+    rank = (len(ordered) - 1) * (percentile / 100.0)
+    low = int(rank)
+    high = min(low + 1, len(ordered) - 1)
+    if low == high:
+        return ordered[low]
+    weight = rank - low
+    return ordered[low] + (ordered[high] - ordered[low]) * weight
+
+
+def get_slo_metrics(days=7):
+    """Compute SLO-focused metrics for dashboard cards."""
+    targets = {
+        'execution_success_rate_min': 0.95,
+        'decision_latency_p95_ms': 1500.0,
+        'execution_latency_p95_ms': 7000.0,
+    }
+
+    df = fetch_recent_decisions(limit=2000)
+    if df.empty:
+        return {
+            'available': False,
+            'reason': 'no_data',
+            'window_days': days,
+            'targets': targets,
+        }
+
+    if 'timestamp' in df.columns:
+        cutoff_date = datetime.now() - timedelta(days=days)
+        df['timestamp'] = pd.to_datetime(df['timestamp'], errors='coerce')
+        df = df[df['timestamp'] >= cutoff_date]
+
+    if df.empty:
+        return {
+            'available': False,
+            'reason': 'no_data_in_window',
+            'window_days': days,
+            'targets': targets,
+        }
+
+    decision_latencies = []
+    if 'decision_time_ms' in df.columns:
+        decision_latencies = pd.to_numeric(df['decision_time_ms'], errors='coerce').dropna().tolist()
+
+    execution_latency_col = None
+    for col in ['execution_time_ms', 'response_time_ms', 'latency_ms', 'latency']:
+        if col in df.columns:
+            execution_latency_col = col
+            break
+
+    execution_latencies = []
+    if execution_latency_col:
+        execution_latencies = pd.to_numeric(df[execution_latency_col], errors='coerce').dropna().tolist()
+
+    if 'execution_success' in df.columns:
+        success_series = df['execution_success'].dropna().astype(bool)
+        success_rate = float(success_series.mean()) if not success_series.empty else None
+        success_count = int(success_series.sum()) if not success_series.empty else 0
+        success_total = int(success_series.count()) if not success_series.empty else 0
+    elif 'status' in df.columns:
+        status = df['status'].astype(str).str.lower().str.strip()
+        success_series = status == 'success'
+        success_rate = float(success_series.mean()) if not success_series.empty else None
+        success_count = int(success_series.sum()) if not success_series.empty else 0
+        success_total = int(success_series.count()) if not success_series.empty else 0
+    else:
+        success_rate = None
+        success_count = 0
+        success_total = 0
+
+    p95_decision = _safe_percentile(decision_latencies, 95)
+    p95_execution = _safe_percentile(execution_latencies, 95)
+
+    compliance = {
+        'execution_success_rate_met': success_rate >= targets['execution_success_rate_min'] if success_rate is not None else None,
+        'decision_latency_p95_met': p95_decision <= targets['decision_latency_p95_ms'] if p95_decision is not None else None,
+        'execution_latency_p95_met': p95_execution <= targets['execution_latency_p95_ms'] if p95_execution is not None else None,
+    }
+    checks = [v for v in compliance.values() if v is not None]
+    compliance['all_met'] = all(checks) if checks else None
+
+    return {
+        'available': True,
+        'window_days': days,
+        'targets': targets,
+        'totals': {
+            'decisions': int(len(df)),
+            'executions_with_status': success_total,
+            'successful_executions': success_count,
+        },
+        'metrics': {
+            'execution_success_rate': round(success_rate, 4) if success_rate is not None else None,
+            'decision_latency_p95_ms': round(float(p95_decision), 2) if p95_decision is not None else None,
+            'execution_latency_p95_ms': round(float(p95_execution), 2) if p95_execution is not None else None,
+        },
+        'compliance': compliance,
+    }
+
 def get_region_history(days=7):
     """
     Get historical carbon intensity data by region.
