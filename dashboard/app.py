@@ -363,6 +363,53 @@ st.markdown("""
         color: #8ba7c5;
     }
 
+    .hard-section {
+        margin: 0.3rem 0 1.1rem 0;
+        padding: 0.9rem;
+        border: 1px solid rgba(0, 212, 255, 0.22);
+        border-radius: 14px;
+        background: linear-gradient(145deg, rgba(10, 22, 44, 0.72) 0%, rgba(5, 36, 62, 0.3) 100%);
+    }
+
+    .hard-title {
+        font-size: 0.9rem;
+        color: #d6f7ff;
+        text-transform: uppercase;
+        font-weight: 700;
+        margin-bottom: 0.7rem;
+        letter-spacing: 0.06em;
+    }
+
+    .hard-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 0.7rem;
+    }
+
+    .hard-card {
+        border: 1px solid rgba(149, 190, 255, 0.22);
+        border-radius: 12px;
+        padding: 0.75rem;
+        background: rgba(255, 255, 255, 0.03);
+        min-height: 98px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+    }
+
+    .hard-card-title {
+        color: #dff6ff;
+        font-size: 0.84rem;
+        font-weight: 700;
+        margin-bottom: 0.3rem;
+    }
+
+    .hard-card-text {
+        color: #a8c3e3;
+        font-size: 0.74rem;
+        line-height: 1.35;
+    }
+
     .repo-source-card {
         margin-top: 0.7rem;
         padding: 0.8rem 0.95rem;
@@ -956,6 +1003,10 @@ st.markdown("""
             grid-template-columns: 1fr 1fr;
         }
 
+        .hard-grid {
+            grid-template-columns: 1fr;
+        }
+
         .equal-card {
             min-height: auto;
             margin-bottom: 15px;
@@ -1052,7 +1103,7 @@ def render_hero():
     st.markdown("""
     <div class="hero-header">
         <h1 class="hero-title">CASS</h1>
-        <p class="hero-subtitle">A carbon-aware cloud workload scheduler that cuts emissions while balancing latency and cost.</p>
+        <p class="hero-subtitle">A carbon-aware cloud workload scheduler that reduces emissions while balancing latency and cost.</p>
         <div class="carbon-ticker">
              Real-time region decisions with production-safe deployment stability.
         </div>
@@ -1163,6 +1214,29 @@ def render_impact_metrics_strip(stats, recent_logs):
             <div class="impact-label">Platform Uptime</div>
             <div class="impact-value">{uptime:.1f}%</div>
             <div class="impact-subtext">non-failure service health</div>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+
+def render_why_this_is_hard():
+    """Render concise explanation of core scheduling complexity."""
+    st.markdown("""
+    <div class="hard-section">
+        <div class="hard-title">Why This Is Hard</div>
+        <div class="hard-grid">
+            <div class="hard-card">
+                <div class="hard-card-title">Real-time Carbon Volatility</div>
+                <div class="hard-card-text">Regional grid intensity changes quickly, so static routing can become suboptimal within minutes.</div>
+            </div>
+            <div class="hard-card">
+                <div class="hard-card-title">Anti-Thrashing Constraints</div>
+                <div class="hard-card-text">Aggressive switching reduces stability, so deployment decisions must honor cooldown and lock windows.</div>
+            </div>
+            <div class="hard-card">
+                <div class="hard-card-title">Multi-Objective Optimization</div>
+                <div class="hard-card-text">Carbon, latency, and cost pull in different directions, requiring weighted tradeoffs for reliable outcomes.</div>
+            </div>
         </div>
     </div>
     """, unsafe_allow_html=True)
@@ -1802,7 +1876,7 @@ def render_export_section(logs_df):
 def render_footer():
     st.markdown("""
     <div class="footer">
-        <p>Built with <span class="footer-icon">â¤ï¸</span> by <strong>Bharathi Senthilkumar</strong></p>
+        <p>Built with <span class="footer-icon">&#10084;&#65039;</span> by <strong>Bharathi Senthilkumar</strong></p>
         <p> Powered by Google Cloud </p>
         <p style="font-size: 0.8rem; color: #7f00ff; margin-top: 1rem;">
             Making the cloud greener, one decision at a time
@@ -1948,6 +2022,7 @@ def main():
 
     if stats is not None and len(recent_logs) > 0:
         render_impact_metrics_strip(stats, recent_logs)
+        render_why_this_is_hard()
 
     if stats:
         st.markdown("""
