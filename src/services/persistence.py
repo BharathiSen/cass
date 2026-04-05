@@ -1,7 +1,12 @@
 import pandas as pd
 from datetime import datetime, timedelta
-from google.cloud import firestore
 import streamlit as st
+
+try:
+    from google.cloud import firestore
+    HAS_FIRESTORE = True
+except ImportError:
+    HAS_FIRESTORE = False
 
 # Import simulator as fallback
 try:
@@ -11,6 +16,8 @@ except ImportError:
 
 def get_firestore_client():
     """Initialize Firestore with production fallback logic."""
+    if not HAS_FIRESTORE:
+        return None
     try:
         # Default Google Application Credentials (GCP Auth)
         return firestore.Client(project="cass-lite")
