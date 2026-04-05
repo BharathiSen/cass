@@ -97,7 +97,7 @@ def main():
         days_filter = st.selectbox("Show last", [1, 3, 7, 14, 30], index=2)
 
         st.markdown("---")
-        if st.button("Refresh Data", width='stretch'):
+        if st.button("Refresh Data", use_container_width=True):
             st.rerun()
 
         st.markdown("---")
