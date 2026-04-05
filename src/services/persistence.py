@@ -38,16 +38,19 @@ def fetch_recent_decisions(limit=50):
             .stream()
         )
         decisions = [doc.to_dict() for doc in docs]
-        
+
         if not decisions:
             return generate_mock_decisions(limit)
 
         df = pd.DataFrame(decisions)
-        
+
         # Data Normalization
-        if 'region' not in df.columns and 'selected_region' in df.columns:
-            df['region'] = df['selected_region']
-            
+        if 'selected_region' in df.columns:
+            if 'region' in df.columns:
+                df['region'] = df['region'].fillna(df['selected_region'])
+            else:
+                df['region'] = df['selected_region']
+
         df['data_source'] = 'production'
         return df
     except Exception:
@@ -60,8 +63,11 @@ def get_summary_stats(days=7):
         return {'avg_carbon': 0, 'savings_percent': 0, 'total_decisions': 0}
 
     # Temporal Filtering
-    cutoff_date = datetime.now() - timedelta(days=days)
-    df['timestamp'] = pd.to_datetime(df['timestamp'])
+    cutoff_date = pd.Timestamp.utcnow() - pd.Timedelta(days=days)
+    df['timestamp'] = pd.to_datetime(df['timestamp'], format='mixed', errors='coerce', utc=True)
+    df = df.dropna(subset=['timestamp'])
+    if df.empty:
+        return {'avg_carbon': 0, 'savings_percent': 0, 'total_decisions': 0}
     df = df[df['timestamp'] >= cutoff_date]
 
     return {
@@ -73,7 +79,7 @@ def get_summary_stats(days=7):
     }
 def persist_decision(decision_data):
     """
-    Persists a scheduling decision. In Free Mode (Local), this is a no-op 
+    Persists a scheduling decision. In Free Mode (Local), this is a no-op
     since we rely on real-time grid telemetry for each poll.
     """
     pass

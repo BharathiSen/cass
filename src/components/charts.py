@@ -13,11 +13,11 @@ REGION_MAP_DATA = {
     'BR-CS': {'lat': -15.8267, 'lon': -47.9218, 'name': 'Brazil (southamerica-east1)'}
 }
 
-def render_geographic_map(recent_logs): 
+def render_geographic_map(recent_logs):
     """High-end Global Carbon Observability Map."""
     st.markdown('<div class="chart-container">', unsafe_allow_html=True)
     st.markdown('<div style="font-weight:600; font-size:1.1rem; margin-bottom:1.5rem;">Global Infrastructure Carbon Heatmap</div>', unsafe_allow_html=True)
-    
+
     if not recent_logs.empty:
         # Aggregate data for map
         map_df_list = []
@@ -32,7 +32,7 @@ def render_geographic_map(recent_logs):
                 'carbon': carbon,
                 'Size': 20
             })
-        
+
         fig = px.scatter_geo(
             pd.DataFrame(map_df_list),
             lat="lat", lon="lon",
@@ -60,28 +60,48 @@ def render_geographic_map(recent_logs):
         st.plotly_chart(fig, use_container_width=True)
     else:
         st.info("Awaiting telemetry data...")
-    
+
     st.markdown('</div>', unsafe_allow_html=True)
 
 def render_carbon_intensity_chart(data):
     """Time-series visualization of grid emissions."""
     st.markdown('<div class="chart-container">', unsafe_allow_html=True)
-    st.markdown('<div style="font-weight:600; font-size:1.1rem; margin-bottom:1.5rem;">Real-Time Emission Telemetry</div>', unsafe_allow_html=True)
-    
+    st.markdown('<div style="font-weight:700; font-size:1.3rem; margin-bottom:1.5rem; color:#FFFFFF;">Real-Time Emission Telemetry</div>', unsafe_allow_html=True)
+
     if data.empty: return
 
+    REGION_COLORS = {
+        'DE': '#60A5FA',    # Light blue
+        'FI': '#2563EB',    # Dark blue
+        'JP': '#FCA5A5',    # Pink
+        'BR-CS': '#EF4444', # Red
+        'AU-NSW': '#86EFAC',# Light green
+        'IN': '#34D399'     # Teal/Green
+    }
+
     fig = go.Figure()
-    for region in data['region'].unique():
+    # Enforce legend ordering matching the reference
+    ordered_regions = [r for r in ['DE', 'FI', 'JP', 'BR-CS', 'AU-NSW', 'IN'] if r in data['region'].unique()]
+    # Fallback for any unknown regions
+    for r in data['region'].unique():
+        if r not in ordered_regions:
+            ordered_regions.append(r)
+
+    for region in ordered_regions:
         reg_data = data[data['region'] == region]
-        fig.add_trace(go.Scatter(x=reg_data['timestamp'], y=reg_data['carbon_intensity'], name=f"{region}", mode='lines', line=dict(width=1.5)))
-    
+        # Sort values by timestamp before plotting to prevent zigzagging backwards
+        reg_data = reg_data.sort_values(by='timestamp')
+        color = REGION_COLORS.get(region, '#FFFFFF')
+        fig.add_trace(go.Scatter(x=reg_data['timestamp'], y=reg_data['carbon_intensity'], name=f"{region}", mode='lines', line=dict(width=1.5, color=color)))
+
     fig.update_layout(
         plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)',
-        font=dict(color='#9CA3AF', family='Inter'),
-        xaxis=dict(showgrid=True, gridcolor='rgba(255,255,255,0.05)'),
-        yaxis=dict(showgrid=True, gridcolor='rgba(255,255,255,0.05)'),
-        height=320, margin=dict(l=0, r=0, t=0, b=0),
-        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
+        font=dict(color='#FFFFFF', family='Inter'),
+        xaxis=dict(showgrid=True, gridcolor='rgba(255,255,255,0.05)', dtick=None),
+        yaxis=dict(showgrid=True, gridcolor='rgba(255,255,255,0.05)', title=''),
+        height=400, margin=dict(l=10, r=10, t=10, b=10),
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1, font=dict(size=13, color='#FFFFFF')),
+        hovermode="x unified"
     )
     st.plotly_chart(fig, use_container_width=True)
     st.markdown('</div>', unsafe_allow_html=True)

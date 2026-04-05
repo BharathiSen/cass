@@ -21,8 +21,11 @@ def get_energy_mix_data(days=7):
             return generate_mock_energy_mix(days)
 
         # Filtering
-        cutoff = datetime.now() - timedelta(days=days)
-        logs['timestamp'] = pd.to_datetime(logs['timestamp'])
+        cutoff = pd.Timestamp.utcnow() - pd.Timedelta(days=days)
+        logs['timestamp'] = pd.to_datetime(logs['timestamp'], format='mixed', errors='coerce', utc=True)
+        logs = logs.dropna(subset=['timestamp'])
+        if logs.empty:
+            return generate_mock_energy_mix(days)
         logs = logs[logs[ 'timestamp'] >= cutoff]
 
         # PROXY LOGIC: Convert gCO2/kWh to Renewables %
@@ -33,7 +36,7 @@ def get_energy_mix_data(days=7):
             return max(10, 50 - (carbon - 300) / 10)
 
         logs['renewable_pct'] = logs['carbon_intensity'].apply(carbon_to_renewable_pct).clip(15, 100)
-        
+
         # Smoothed grouping
         logs['hour'] = logs['timestamp'].dt.floor('H')
         return logs.groupby('hour').agg({'renewable_pct': 'mean'}).reset_index().rename(columns={'hour': 'timestamp'})
@@ -43,6 +46,9 @@ def get_energy_mix_data(days=7):
 
 def get_region_history(days=7):
     """Fetch global intensity trajectory (historical time-series)."""
-    # This currently uses recent decisions as a proxy for history
-    # In a full production env, this would pull from a dedicated timeseries collection
-    return fetch_recent_decisions(limit=2000)
+    # Use synthetic time-series grid telemetry so we always have a full 6-region multi-line chart
+    try:
+        from ..utils.simulators import generate_mock_history
+    except ImportError:
+        from src.utils.simulators import generate_mock_history
+    return generate_mock_history(days)

@@ -17,7 +17,25 @@ def render_decision_log_stable(logs_df):
 
     if not logs_df.empty:
         df = logs_df.copy().head(10)
-        df['time'] = pd.to_datetime(df['timestamp']).dt.strftime('%H:%M:%S')
+
+        # Safe column fallback for region and carbon
+        for fallback_col in ['region', 'timestamp', 'carbon_intensity']:
+            if fallback_col not in df.columns:
+                df[fallback_col] = pd.NaT if fallback_col == 'timestamp' else ('N/A' if fallback_col == 'region' else 0)
+
+        # Map status appropriately from execution_success if available
+        if 'execution_success' in df.columns:
+            df['status'] = df['execution_success'].map({True: 'success', False: 'failed'}).fillna('unknown')
+        elif 'status' not in df.columns:
+            df['status'] = 'unknown'
+        else:
+            df['status'] = df['status'].fillna('unknown')
+
+        parsed_ts = pd.to_datetime(df['timestamp'], format='mixed', errors='coerce', utc=True)
+        df['time'] = parsed_ts.dt.strftime('%H:%M:%S').fillna('N/A')
+
+        # Fill missing regions to prevent display gaps
+        df['region'] = df['region'].fillna('N/A')
         df['flag'] = df['region'].map(REGION_FLAGS).fillna(df['region'])
 
         # HTML Table
@@ -31,9 +49,13 @@ def render_decision_log_stable(logs_df):
 
         # --- Export Buttons ---
         st.markdown('<div style="padding:0 1.5rem 1.5rem 1.5rem;">', unsafe_allow_html=True)
-        
+
         # Build export dataframe
         export_df = logs_df.copy()
+        for col, default in [('timestamp', pd.NaT), ('carbon_intensity', 0), ('status', 'unknown')]:
+            if col not in export_df.columns:
+                export_df[col] = default
+
         export_df = export_df[['timestamp', 'carbon_intensity', 'status']].rename(
             columns={'timestamp': 'Timestamp', 'carbon_intensity': 'Carbon_gCO2_kWh', 'status': 'Status'}
         )
