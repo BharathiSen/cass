@@ -15,7 +15,7 @@ load_dotenv()
 # Add root directory to sys.path to ensure modules in src/ are discoverable
 root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 if root_dir not in sys.path:
-    sys.path.append(root_dir)
+    sys.path.insert(0, root_dir)
 
 # Import local modules from re-organized src/ structure
 from dashboard.utils import (
