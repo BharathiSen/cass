@@ -4,13 +4,14 @@ from datetime import datetime
 def render_hero():
     """Clean, high-typography hero section."""
     st.markdown("""
-    <div class="hero-header">
-        <h1 class="hero-title">CASS-Lite v2</h1>
-        <p class="hero-subtitle">
+    <div style="padding: 2.5rem 2rem 1.5rem 2rem; text-align: center; background: radial-gradient(circle at top, rgba(16, 185, 129, 0.08) 0%, transparent 70%);">
+        <span style="display:block; font-size: 3.5rem; font-weight: 700; letter-spacing: -0.04em; color: #FFFFFF !important; margin-bottom: 0.75rem; font-family: sans-serif; line-height: 1.1;">CASS-Lite v2</span>
+        <span style="display:block; color: #9CA3AF; font-size: 1.05rem; max-width: 650px; margin: 0 auto; line-height: 1.6;">
             Autonomous multi-objective cloud orchestration reducing global carbon footprint through real-time grid intelligence.
-        </p>
+        </span>
     </div>
     """, unsafe_allow_html=True)
+
 
 def render_footer():
     """Project-branded footer with focus on sustainability."""

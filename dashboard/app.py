@@ -39,8 +39,8 @@ from src.components.charts import (
     render_energy_mix_chart,
     render_region_frequency_chart
 )
-from src.components.audit import (
-    render_logs_table, 
+from src.components.decision_logs import (
+    render_decision_log_stable, 
     render_multi_objective_optimizer, 
     render_export_section,
     render_why_this_is_hard,
@@ -75,7 +75,15 @@ if st.session_state.high_contrast:
 # ============================================================================
 
 def main():
-    render_hero()
+    # Hero — using native Streamlit for guaranteed visibility
+    st.markdown("""
+    <div style="text-align:center; padding: 2.5rem 1rem 1rem 1rem; background: radial-gradient(circle at top, rgba(16,185,129,0.08) 0%, transparent 70%);">
+        <span style="font-size:3.2rem; font-weight:800; color:#FFFFFF; letter-spacing:-0.03em; display:block;">CASS-Lite v2</span>
+        <span style="color:#9CA3AF; font-size:1rem; display:block; margin-top:0.5rem; max-width:600px; margin-left:auto; margin-right:auto;">
+            Autonomous multi-objective cloud orchestration reducing global carbon footprint through real-time grid intelligence.
+        </span>
+    </div>
+    """, unsafe_allow_html=True)
 
     # Sidebar controls
     with st.sidebar:
@@ -150,7 +158,7 @@ def main():
         render_energy_mix_chart(days=days_filter)
 
     render_multi_objective_optimizer(recent_logs=recent_logs)
-    render_logs_table(recent_logs)
+    render_decision_log_stable(recent_logs)
     
     if not recent_logs.empty:
         render_export_section(recent_logs)

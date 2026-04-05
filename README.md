@@ -8,23 +8,21 @@
 
 ![CASS-Lite v2 Architecture](architecture.png)
 
-## 🧠 Decision Flow Logic (The Scheduler "Brain")
+## 🧠 Step-by-Step Decision Flow
 
 ```mermaid
 graph TD
-    S1[1. Fetch Latest Carbon Samples] --> S2[2. Build 24h Region Trend]
-    S2 --> S3[3. Compute Smoothing - Weighted Moving Avg]
+    S1[1. Fetch Latest Samples] --> S2[2. Build 24h Region Trend]
+    S2 --> S3[3. Compute Weighted Moving Average]
     S3 --> S4[4. Normalize Carbon, Latency, Cost]
-    S4 --> S5[5. Rank Regions by Composite Score]
-    S5 --> S6{6. Apply Stability Policy}
-    
-    S6 -->|Cooldown Active| S7a[Keep Current Region]
-    S6 -->|Gain Below Threshold| S7a
-    S6 -->|Optimal Gain Found| S7b[Switch to Greenest Region]
-    
-    S7a --> S8[7. Log Decision & Persist State]
-    S7b --> S8
-    S8 --> E[GCP Firestore Logger]
+    S4 --> S5[5. Compute Composite Scores]
+    S5 --> S6[6. Rank Regions by Lowest Score]
+    S6 --> S7{7. Apply Stability Policy}
+    S7 -->|Cooldown Active| S8[Keep Current Region]
+    S7 -->|Improvement < Threshold| S8
+    S7 -->|Threshold Met| S9[Switch to Best Region]
+    S8 --> S10[8. Log Decision & Persist State]
+    S9 --> S10
 ```
 
 ## 🚀 Core Engineering Implementation

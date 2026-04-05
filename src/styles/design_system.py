@@ -18,23 +18,34 @@ def apply_custom_css():
             --card-glass: rgba(20, 20, 20, 0.7);
         }
 
-        /* Global Reset & Typography */
-        html, body, [data-testid="stAppViewContainer"], [data-testid="stHeader"], [data-testid="stToolbar"] {
+        /* Full Screen Width & Visibility */
+        html, body, [data-testid="stAppViewContainer"] {
             background-color: var(--bg-primary) !important;
             font-family: 'Inter', sans-serif !important;
             color: var(--text-main);
+            width: 100% !important;
         }
         
-        /* Remove the annoying blue header bar */
-        header { 
-            background-color: var(--bg-primary) !important; 
+        /* MAX WIDTH OVERRIDE — Streamlit 1.28 selectors */
+        section[data-testid="stMain"] > div,
+        [data-testid="stMainBlockContainer"],
+        .main .block-container {
+            max-width: 100% !important;
+            padding-left: 2rem !important;
+            padding-right: 2rem !important;
+            padding-top: 1rem !important;
+        }
+
+        [data-testid="stHeader"] {
+            background-color: var(--bg-primary) !important;
             border-bottom: 1px solid var(--border-color);
         }
 
-        /* Sidebar Styling */
+        /* Ensure Sidebar is visible and correct width */
         [data-testid="stSidebar"] {
             background-color: var(--bg-secondary) !important;
             border-right: 1px solid var(--border-color);
+            min-width: 320px !important;
         }
 
         /* Input / Widget Backgrounds */
@@ -58,9 +69,7 @@ def apply_custom_css():
             font-size: 3.5rem !important;
             font-weight: 700 !important;
             letter-spacing: -0.04em !important;
-            background: linear-gradient(to bottom right, #FFFFFF 30%, #9CA3AF 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
+            color: #FFFFFF !important;
             margin-bottom: 0.5rem !important;
         }
 
@@ -123,6 +132,26 @@ def apply_custom_css():
             border: 1px solid var(--border-color);
             border-radius: 24px;
             text-align: center;
+        }
+        /* Table Styling (Bulletproof Fix) */
+        .table-dark {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.825rem;
+            color: var(--text-main);
+        }
+        .table-dark th {
+            text-align: center;
+            padding: 1rem;
+            color: var(--text-secondary);
+            font-weight: 600;
+            border-bottom: 1px solid var(--border-color);
+            text-transform: uppercase;
+        }
+        .table-dark td {
+            text-align: center;
+            padding: 0.75rem;
+            border-bottom: 1px solid rgba(255,255,255,0.03);
         }
     </style>
     """, unsafe_allow_html=True)
