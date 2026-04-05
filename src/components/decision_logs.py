@@ -1,6 +1,15 @@
 import streamlit as st
 import pandas as pd
 
+REGION_FLAGS = {
+    'IN': '🇮🇳 India',
+    'FI': '🇫🇮 Finland',
+    'DE': '🇩🇪 Germany',
+    'JP': '🇯🇵 Japan',
+    'AU-NSW': '🇦🇺 Australia',
+    'BR-CS': '🇧🇷 Brazil'
+}
+
 def render_decision_log_stable(logs_df):
     """Bulletproof HTML Audit Table with CSV & JSON export."""
     st.markdown('<div class="chart-container" style="padding:0;">', unsafe_allow_html=True)
@@ -9,10 +18,11 @@ def render_decision_log_stable(logs_df):
     if not logs_df.empty:
         df = logs_df.copy().head(10)
         df['time'] = pd.to_datetime(df['timestamp']).dt.strftime('%H:%M:%S')
+        df['flag'] = df['region'].map(REGION_FLAGS).fillna(df['region'])
 
         # HTML Table
-        html_table = df[['time', 'region', 'carbon_intensity', 'status']].rename(
-            columns={'region': 'Region', 'time': 'Time', 'carbon_intensity': 'Carbon (gCO₂/kWh)', 'status': 'Status'}
+        html_table = df[['time', 'flag', 'carbon_intensity', 'status']].rename(
+            columns={'time': 'Time', 'flag': 'Region', 'carbon_intensity': 'Carbon (gCO₂/kWh)', 'status': 'Status'}
         ).to_html(classes='table table-dark', index=False, justify='center', border=0)
         st.markdown(
             f'<div style="max-height:400px; overflow-y:auto; padding:0 1.5rem 1rem 1.5rem;">{html_table}</div>',
@@ -24,8 +34,8 @@ def render_decision_log_stable(logs_df):
         
         # Build export dataframe
         export_df = logs_df.copy()
-        export_df = export_df[['timestamp', 'region', 'carbon_intensity', 'status']].rename(
-            columns={'region': 'Region', 'timestamp': 'Timestamp', 'carbon_intensity': 'Carbon_gCO2_kWh', 'status': 'Status'}
+        export_df = export_df[['timestamp', 'carbon_intensity', 'status']].rename(
+            columns={'timestamp': 'Timestamp', 'carbon_intensity': 'Carbon_gCO2_kWh', 'status': 'Status'}
         )
 
         col1, col2 = st.columns(2)
