@@ -1,4 +1,4 @@
-﻿# CASS-Lite v2 - Master Development Dependencies
+# CASS-Lite v2 - Master Development Dependencies
 # Use this file exclusively for local development and testing.
 
 # --- Production Dependencies (Included by Reference) ---
@@ -7,14 +7,15 @@
 -r dashboard/requirements.txt
 
 # --- Advanced Analytical Modules (Optional) ---
-prophet==1.1.5            # Time series forecasting
+# --- Advanced Analytical Modules (Optional) ---
+prophet>=1.1.5            # Time series forecasting
 numpy>=1.24.3             # Numerical computing
 
 # --- Development & Testing Tools ---
-pytest==7.4.3             # Unit testing framework
+pytest>=7.4.3             # Unit testing framework
 pytest-cov                # Test coverage generation
-requests-mock==1.11.0     # HTTP request mocking
-black==23.11.0            # Python code formatter
-flake8==6.1.0             # Python linter
-python-dotenv==1.0.0      # Local .env management
+requests-mock>=1.11.0     # HTTP request mocking
+black>=23.11.0            # Python code formatter
+flake8>=6.1.0             # Python linter
+python-dotenv>=1.0.0      # Local .env management
 
