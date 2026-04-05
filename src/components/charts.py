@@ -57,7 +57,7 @@ def render_geographic_map(recent_logs):
             font=dict(family="Inter", color="white")
         )
 
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, width='stretch')
     else:
         st.info("Awaiting telemetry data...")
     
@@ -83,7 +83,7 @@ def render_carbon_intensity_chart(data):
         height=320, margin=dict(l=0, r=0, t=0, b=0),
         legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
     )
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width='stretch')
     st.markdown('</div>', unsafe_allow_html=True)
 
 def render_savings_gauge(savings_percent):
@@ -96,7 +96,7 @@ def render_savings_gauge(savings_percent):
         gauge = {'axis': {'range': [None, 100], 'tickwidth': 1, 'tickcolor': "#333"}, 'bar': {'color': "#10B981"}, 'bgcolor': "rgba(255,255,255,0.05)", 'borderwidth': 0}
     ))
     fig.update_layout(paper_bgcolor='rgba(0,0,0,0)', height=280, margin=dict(l=30, r=30, t=10, b=10))
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width='stretch')
     st.markdown('</div>', unsafe_allow_html=True)
 
 def render_region_frequency_chart(data): pass

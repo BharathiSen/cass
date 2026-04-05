@@ -8,7 +8,7 @@ def render_logs_table(logs_df):
     if not logs_df.empty:
         df = logs_df.copy().head(10)
         df['time'] = pd.to_datetime(df['timestamp']).dt.strftime('%H:%M:%S')
-        st.dataframe(df[['time', 'region', 'carbon_intensity', 'status']], use_container_width=True, hide_index=True)
+        st.dataframe(df[['time', 'region', 'carbon_intensity', 'status']], width='stretch', hide_index=True)
     st.markdown('</div>', unsafe_allow_html=True)
 
 def render_export_section(logs_df):
@@ -20,10 +20,10 @@ def render_export_section(logs_df):
     col1, col2 = st.columns(2)
     with col1:
         csv = logs_df.to_csv(index=False).encode('utf-8')
-        st.download_button(label="Download as CSV (Audit Ready)", data=csv, file_name='cass_audit_log.csv', mime='text/csv', use_container_width=True)
+        st.download_button(label="Download as CSV (Audit Ready)", data=csv, file_name='cass_audit_log.csv', mime='text/csv', width='stretch')
     with col2:
         json_data = logs_df.to_json(orient='records', indent=2).encode('utf-8')
-        st.download_button(label="Download as JSON (Automation Ready)", data=json_data, file_name='cass_audit_log.json', mime='application/json', use_container_width=True)
+        st.download_button(label="Download as JSON (Automation Ready)", data=json_data, file_name='cass_audit_log.json', mime='application/json', width='stretch')
 
 def render_engineering_decisions():
     """Information regarding the systems thinking and decisions."""

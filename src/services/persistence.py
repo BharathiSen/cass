@@ -64,3 +64,9 @@ def get_summary_stats(days=7):
         'total_decisions': len(df),
         'success_rate': (df['status'] == 'success').mean() * 100 if 'status' in df.columns else 100
     }
+def persist_decision(decision_data):
+    """
+    Persists a scheduling decision. In Free Mode (Local), this is a no-op 
+    since we rely on real-time grid telemetry for each poll.
+    """
+    pass
