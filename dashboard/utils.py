@@ -16,7 +16,7 @@ from src.utils.simulators import generate_mock_decisions, generate_mock_history
 
 def get_slo_metrics(days=7):
     """
-    Fetch SLO compliance metrics. 
+    Fetch SLO compliance metrics.
     Connects to the production Firestore through the persistence service.
     """
     try:
@@ -25,12 +25,12 @@ def get_slo_metrics(days=7):
         if df or df.empty:
             if not isinstance(df, pd.DataFrame):
                 df = pd.DataFrame(df)
-            
+
         # Basic SLO Calculation (Success Rate & Decision Latency)
         total = len(df)
         success_rate = (df['status'] == 'success').mean() * 100 if 'status' in df.columns else 98.5
         avg_latency = df['decision_time_ms'].mean() if 'decision_time_ms' in df.columns else 1200
-        
+
         return {
             'window_days': days,
             'metrics': {
