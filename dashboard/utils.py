@@ -22,7 +22,7 @@ def get_slo_metrics(days=7):
     try:
         # Fallback logic if persistence doesn't have it directly
         df = fetch_recent_decisions(limit=1000)
-        if df or df.empty:
+        if df is not None:
             if not isinstance(df, pd.DataFrame):
                 df = pd.DataFrame(df)
 
