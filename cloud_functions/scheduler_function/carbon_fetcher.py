@@ -29,7 +29,7 @@ class CarbonFetcher:
         Initialize the Carbon Fetcher.
 
         Args:
-            api_key: gwASf8vJiQ92CPIuRzuy
+            api_key: ElectricityMap API key
             cache_ttl: Cache duration in seconds (default: 5 minutes)
         """
         self.api_key = api_key
@@ -369,35 +369,47 @@ class CarbonFetcher:
 if __name__ == "__main__":
     """
     Test the Carbon Fetcher module.
-
-    Before running:
-    1. Get your API key from https://api-portal.electricitymap.org/
-    2. Replace 'YOUR_API_KEY_HERE' below
     """
-
     print("CASS-Lite v2 - Carbon Fetcher Test")
     print("=" * 60)
 
-    # Initialize fetcher (replace with your actual API key)
-    API_KEY = "gwASf8vJiQ92CPIuRzuy"
-
-    if API_KEY == "YOUR_API_KEY_HERE":
+    import os
+    from pathlib import Path
+    try:
+        from dotenv import load_dotenv
+        # Explicitly look for .env in current directory and parents
+        env_path = Path('.') / '.env'
+        load_dotenv(dotenv_path=env_path, verbose=True)
+    except ImportError:
+        pass
+    
+    API_KEY = os.environ.get('ELECTRICITYMAP_KEY', 'YOUR_API_KEY_HERE')
+    if API_KEY and API_KEY != 'YOUR_API_KEY_HERE':
+        API_KEY = API_KEY.strip(' "') # Remove spaces or quotes
+    
+    if API_KEY == "YOUR_API_KEY_HERE" or not API_KEY:
         print("\n  WARNING: Please add your ElectricityMap API key first!")
+        print(f"  Current working directory: {os.getcwd()}")
         print("   Get one at: https://api-portal.electricitymap.org/")
-        print("   Then update the API_KEY variable in this file.\n")
+        print("   Then update the .env file in the root.\n")
     else:
+        print(f"✓ API Key found (starts with: {API_KEY[:4]}...)")
         fetcher = CarbonFetcher(api_key=API_KEY, cache_ttl=300)
 
         # Test 1: Fetch single region
         print("\n--- Test 1: Fetch India ---")
         india_data = fetcher.fetch_carbon_intensity("IN")
+        if india_data:
+             print(f"  ✓ Success! Carbon Intensity for IN: {india_data['carbonIntensity']} gCO2/kWh")
+        else:
+             print("  ✗ Failed to fetch India data.")
 
         # Test 2: Find greenest region
         print("\n--- Test 2: Find Greenest Region ---")
         greenest = fetcher.get_greenest_region()
-
-        # Test 3: Compare all regions
-        print("\n--- Test 3: Compare All Regions ---")
-        ranking = fetcher.compare_regions()
+        if greenest:
+             print(f"  ✓ Success! Greenest: {greenest['zone']} ({greenest['carbonIntensity']} gCO2/kWh)")
+        else:
+             print("  ✗ Failed to find greenest region.")
 
         print("\n✓ All tests completed!")

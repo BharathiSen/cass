@@ -22,25 +22,13 @@ from carbon_fetcher import CarbonFetcher
 from job_runner import JobRunner
 from firestore_logger import FirestoreLogger
 from policy_engine import PolicyEngine
+from dotenv import load_dotenv
+
+# Load local environment variables from .env if present
+load_dotenv()
 
 
-DEFAULT_REGION_LATENCY_MS = {
-    "IN": 10,
-    "FI": 180,
-    "DE": 150,
-    "JP": 90,
-    "AU-NSW": 140,
-    "BR-CS": 350,
-}
-
-DEFAULT_REGION_COST_USD = {
-    "IN": 0.0476,
-    "FI": 0.0570,
-    "DE": 0.0475,
-    "JP": 0.0560,
-    "AU-NSW": 0.0595,
-    "BR-CS": 0.0450,
-}
+# DEFAULTS REMOVED - NOW MANAGED IN config.json
 
 
 def can_deploy(last_deployment_time: Optional[str], hold_hours: float = 24.0) -> Dict[str, float | bool]:
@@ -115,8 +103,8 @@ class CarbonScheduler:
         cache_ttl = self.config.get('api', {}).get('cache_ttl_seconds', 300)
 
         if not api_key or api_key == "YOUR_API_KEY_HERE":
-            # Use hardcoded key for now (in production, use environment variables)
-            api_key = "gwASf8vJiQ92CPIuRzuy"
+            import os
+            api_key = os.environ.get('ELECTRICITYMAP_KEY')
 
         self.fetcher = CarbonFetcher(api_key=api_key, cache_ttl=cache_ttl)
         self.job_runner = JobRunner(self.config, max_retries=3, retry_delay=2, timeout=30)
@@ -226,8 +214,8 @@ class CarbonScheduler:
     ) -> List[Dict]:
         """Compute composite scores using the configured policy strategy."""
         scheduler_cfg = self.config.get("scheduler", {})
-        latency_map = scheduler_cfg.get("region_latency_ms", DEFAULT_REGION_LATENCY_MS)
-        cost_map = scheduler_cfg.get("region_cost_usd", DEFAULT_REGION_COST_USD)
+        latency_map = scheduler_cfg.get("region_latency_ms", {})
+        cost_map = scheduler_cfg.get("region_cost_usd", {})
         return self.policy_engine.score_regions(
             region_carbon_24h=region_carbon_24h,
             latest_region_samples=latest_region_samples,
