@@ -13,6 +13,8 @@ Date: November 2025
 import json
 import time
 import requests
+import os
+import subprocess
 from typing import Dict, Optional, Tuple
 from datetime import datetime
 
@@ -78,11 +80,39 @@ class JobRunner:
 
         return url
 
-    def get_auth_token(self) -> Optional[str]:
+    def get_auth_token(self, audience: Optional[str] = None) -> Optional[str]:
         """Return bearer token for authenticated function calls.
 
-        Default implementation is no-op; callers/tests can override or patch.
+        Resolution order:
+        1. WORKER_ID_TOKEN env var (manual override)
+        2. Google ADC service account token for target audience
+        3. gcloud identity token as local developer fallback
         """
+        env_token = os.getenv("WORKER_ID_TOKEN", "").strip()
+        if env_token:
+            return env_token
+
+        if audience:
+            try:
+                from google.auth.transport.requests import Request
+                from google.oauth2 import id_token
+                return id_token.fetch_id_token(Request(), audience)
+            except Exception:
+                pass
+
+            try:
+                proc = subprocess.run(
+                    ["gcloud", "auth", "print-identity-token", f"--audiences={audience}"],
+                    check=True,
+                    capture_output=True,
+                    text=True,
+                    timeout=10,
+                )
+                token = proc.stdout.strip()
+                return token or None
+            except Exception:
+                pass
+
         return None
 
     def trigger_function(self, region: str, payload: Dict) -> Tuple[bool, Optional[Dict]]:
@@ -127,7 +157,7 @@ class JobRunner:
 
                 require_auth = self.config.get('security', {}).get('require_authentication', False)
                 if require_auth:
-                    token = self.get_auth_token()
+                    token = self.get_auth_token(function_url)
                     if token:
                         headers['Authorization'] = f'Bearer {token}'
 

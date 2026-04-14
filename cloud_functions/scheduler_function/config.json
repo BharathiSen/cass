@@ -7,37 +7,37 @@
     "IN": {
       "name": "India",
       "flag": "🇮🇳",
-      "cloud_function_url": "",
+      "cloud_function_url": "https://asia-south1-cass-lite.cloudfunctions.net/run_worker_job",
       "enabled": true
     },
     "FI": {
       "name": "Finland",
       "flag": "🇫🇮",
-      "cloud_function_url": "",
+      "cloud_function_url": "https://asia-south1-cass-lite.cloudfunctions.net/run_worker_job",
       "enabled": true
     },
     "DE": {
       "name": "Germany",
       "flag": "🇩🇪",
-      "cloud_function_url": "",
+      "cloud_function_url": "https://asia-south1-cass-lite.cloudfunctions.net/run_worker_job",
       "enabled": true
     },
     "JP": {
       "name": "Japan",
       "flag": "🇯🇵",
-      "cloud_function_url": "",
+      "cloud_function_url": "https://asia-south1-cass-lite.cloudfunctions.net/run_worker_job",
       "enabled": true
     },
     "AU-NSW": {
       "name": "New South Wales, Australia",
       "flag": "🇦🇺",
-      "cloud_function_url": "",
+      "cloud_function_url": "https://asia-south1-cass-lite.cloudfunctions.net/run_worker_job",
       "enabled": true
     },
     "BR-CS": {
       "name": "Central-South Brazil",
       "flag": "🇧🇷",
-      "cloud_function_url": "",
+      "cloud_function_url": "https://asia-south1-cass-lite.cloudfunctions.net/run_worker_job",
       "enabled": true
     }
   },
@@ -46,7 +46,7 @@
     "project_id": "cass-lite"
   },
   "security": {
-    "require_authentication": true,
+    "require_authentication": false,
     "service_account": "scheduler-sa@cass-lite.iam.gserviceaccount.com",
     "allowed_origins": ["https://cass-lite-dashboard-262153469989.asia-south1.run.app"],
     "rate_limiting": {
@@ -78,9 +78,10 @@
     "log_retention_days": 30
   },
   "scheduler": {
-    "check_interval_minutes": 15,
-    "retry_attempts": 3,
+    "check_interval_minutes": 360,
+    "retry_attempts": 1,
     "retry_delay_seconds": 5,
+    "request_timeout_seconds": 20,
     "policy": {
       "strategy_mode": "balanced"
     },

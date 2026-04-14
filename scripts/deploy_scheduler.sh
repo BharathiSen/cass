@@ -3,9 +3,9 @@
 ################################################################################
 # CASS-Lite v2 - Scheduler Function Deployment Script
 ################################################################################
-# 
+#
 # This script deploys the scheduler Cloud Function to Google Cloud Platform.
-# 
+#
 # The scheduler function:
 # - Fetches carbon intensity data from multiple regions
 # - Selects the greenest region
@@ -34,8 +34,8 @@ echo ""
 FUNCTION_NAME="run_scheduler"
 REGION="asia-south1"
 RUNTIME="python311"
-MEMORY="512MB"
-TIMEOUT="540s"
+MEMORY="256MB"
+TIMEOUT="120s"
 ENTRY_POINT="run_scheduler"
 SOURCE_DIR="cloud_functions/scheduler_function"
 
@@ -106,6 +106,8 @@ gcloud functions deploy $FUNCTION_NAME \
     --allow-unauthenticated \
     --memory $MEMORY \
     --timeout $TIMEOUT \
+    --min-instances 0 \
+    --max-instances 1 \
     --set-env-vars PYTHONUNBUFFERED=1
 
 # Check deployment status
@@ -115,10 +117,10 @@ if [ $? -eq 0 ]; then
     echo "✅ DEPLOYMENT SUCCESSFUL"
     echo "========================================================================"
     echo ""
-    
+
     # Get function URL
     FUNCTION_URL=$(gcloud functions describe $FUNCTION_NAME --region=$REGION --format="value(httpsTrigger.url)" 2>/dev/null)
-    
+
     if [ -n "$FUNCTION_URL" ]; then
         echo "🔗 Function URL:"
         echo "   $FUNCTION_URL"
@@ -130,7 +132,7 @@ if [ $? -eq 0 ]; then
         echo "   $FUNCTION_URL"
         echo ""
     fi
-    
+
     echo "✅ Scheduler function is now live!"
     echo "   You can trigger it via HTTP or Cloud Scheduler (cron)"
     echo ""

@@ -3,9 +3,9 @@
 ################################################################################
 # CASS-Lite v2 - Worker Function Deployment Script
 ################################################################################
-# 
+#
 # This script deploys the worker Cloud Function to Google Cloud Platform.
-# 
+#
 # The worker function:
 # - Executes the actual workload in the selected region
 # - Simulates carbon-optimized job execution
@@ -124,6 +124,8 @@ gcloud functions deploy $FUNCTION_NAME \
     --allow-unauthenticated \
     --memory $MEMORY \
     --timeout $TIMEOUT \
+    --min-instances 0 \
+    --max-instances 1 \
     --set-env-vars PYTHONUNBUFFERED=1
 
 # Check deployment status
@@ -133,10 +135,10 @@ if [ $? -eq 0 ]; then
     echo "✅ DEPLOYMENT SUCCESSFUL"
     echo "========================================================================"
     echo ""
-    
+
     # Get function URL
     FUNCTION_URL=$(gcloud functions describe $FUNCTION_NAME --region=$REGION --format="value(httpsTrigger.url)" 2>/dev/null)
-    
+
     if [ -n "$FUNCTION_URL" ]; then
         echo "🔗 Function URL:"
         echo "   $FUNCTION_URL"
@@ -147,7 +149,7 @@ if [ $? -eq 0 ]; then
         echo '     -d '"'"'{"task_id":"test_123","region":"'"$REGION"'","carbon_intensity":42}'"'"
         echo ""
     fi
-    
+
     echo "✅ Worker function is now live in $REGION!"
     echo ""
     echo "📌 Next steps:"

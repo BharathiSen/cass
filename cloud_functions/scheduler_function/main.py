@@ -106,8 +106,18 @@ class CarbonScheduler:
             import os
             api_key = os.environ.get('ELECTRICITYMAP_KEY')
 
+        scheduler_cfg = self.config.get('scheduler', {})
+        retry_attempts = int(scheduler_cfg.get('retry_attempts', 1))
+        retry_delay_seconds = int(scheduler_cfg.get('retry_delay_seconds', 5))
+        request_timeout_seconds = int(scheduler_cfg.get('request_timeout_seconds', 20))
+
         self.fetcher = CarbonFetcher(api_key=api_key, cache_ttl=cache_ttl)
-        self.job_runner = JobRunner(self.config, max_retries=3, retry_delay=2, timeout=30)
+        self.job_runner = JobRunner(
+            self.config,
+            max_retries=retry_attempts,
+            retry_delay=retry_delay_seconds,
+            timeout=request_timeout_seconds,
+        )
         self.firestore_logger = FirestoreLogger(self.config)
         self.policy_engine = PolicyEngine(self.config, can_deploy_fn=can_deploy)
         self.active_observability_context: Dict[str, str] = {}
@@ -139,7 +149,12 @@ class CarbonScheduler:
             return {
                 "api": {"electricitymap_key": "", "cache_ttl_seconds": 300},
                 "regions": {},
-                "scheduler": {"check_interval_minutes": 15}
+                "scheduler": {
+                    "check_interval_minutes": 180,
+                    "retry_attempts": 1,
+                    "retry_delay_seconds": 5,
+                    "request_timeout_seconds": 20,
+                }
             }
         except json.JSONDecodeError as e:
             print(f"⚠️  Error parsing config file: {e}")
